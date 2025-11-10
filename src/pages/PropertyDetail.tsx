@@ -1,0 +1,292 @@
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import Layout from "@/components/Layout";
+import { mockProperties } from "@/data/mockData";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign } from "lucide-react";
+import { toast } from "sonner";
+import { mockLeads } from "@/data/mockData";
+
+const PropertyDetail = () => {
+  const { id } = useParams();
+  const property = mockProperties.find((p) => p.id === id);
+  const [eoiOpen, setEoiOpen] = useState(false);
+  const [offerOpen, setOfferOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState("");
+  const [offerAmount, setOfferAmount] = useState("");
+  const [eoiNotes, setEoiNotes] = useState("");
+  const [offerTerms, setOfferTerms] = useState("");
+
+  if (!property) {
+    return (
+      <Layout>
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="text-center">
+            <h2 className="mb-2 text-2xl font-bold">Property not found</h2>
+            <Link to="/properties">
+              <Button variant="outline">Back to Properties</Button>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const handleEOISubmit = () => {
+    if (!selectedLead) {
+      toast.error("Please select a lead");
+      return;
+    }
+    toast.success("Expression of Interest submitted successfully!");
+    setEoiOpen(false);
+    setSelectedLead("");
+    setEoiNotes("");
+  };
+
+  const handleOfferSubmit = () => {
+    if (!selectedLead || !offerAmount) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    toast.success("Sales offer submitted successfully!");
+    setOfferOpen(false);
+    setSelectedLead("");
+    setOfferAmount("");
+    setOfferTerms("");
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "available":
+        return "bg-success/10 text-success border-success/20";
+      case "reserved":
+        return "bg-accent/10 text-accent border-accent/20";
+      case "sold":
+        return "bg-muted text-muted-foreground border-border";
+      default:
+        return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to="/properties">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold tracking-tight">{property.title}</h1>
+            <div className="mt-1 flex items-center text-muted-foreground">
+              <MapPin className="mr-1 h-4 w-4" />
+              {property.location}
+            </div>
+          </div>
+          <Badge className={getStatusColor(property.status)}>{property.status}</Badge>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="overflow-hidden">
+              <div className="aspect-video w-full overflow-hidden bg-muted">
+                <img
+                  src={property.image}
+                  alt={property.title}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Property Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">{property.description}</p>
+                
+                <div className="grid grid-cols-3 gap-4 rounded-lg border p-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <Bed className="h-5 w-5 text-primary" />
+                    <span className="text-2xl font-bold">{property.bedrooms}</span>
+                    <span className="text-sm text-muted-foreground">Bedrooms</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Bath className="h-5 w-5 text-primary" />
+                    <span className="text-2xl font-bold">{property.bathrooms}</span>
+                    <span className="text-sm text-muted-foreground">Bathrooms</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Maximize className="h-5 w-5 text-primary" />
+                    <span className="text-2xl font-bold">{property.area}</span>
+                    <span className="text-sm text-muted-foreground">Sqft</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Features & Amenities</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  {property.features.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-2 rounded-lg border p-3">
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      <span className="text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Price</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4 text-4xl font-bold text-primary">
+                  ${(property.price / 1000000).toFixed(2)}M
+                </div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex justify-between">
+                    <span>Type:</span>
+                    <span className="font-medium capitalize">{property.type}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Status:</span>
+                    <span className="font-medium capitalize">{property.status}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Property ID:</span>
+                    <span className="font-medium">#{property.id}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {property.status === "available" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Dialog open={eoiOpen} onOpenChange={setEoiOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="default" className="w-full">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Submit EOI
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Submit Expression of Interest</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="lead-select">Select Lead</Label>
+                          <Select value={selectedLead} onValueChange={setSelectedLead}>
+                            <SelectTrigger id="lead-select">
+                              <SelectValue placeholder="Choose a lead" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockLeads.map((lead) => (
+                                <SelectItem key={lead.id} value={lead.id}>
+                                  {lead.clientName} - ${(lead.budget / 1000000).toFixed(1)}M
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="eoi-notes">Notes (Optional)</Label>
+                          <Textarea
+                            id="eoi-notes"
+                            placeholder="Add any additional information..."
+                            value={eoiNotes}
+                            onChange={(e) => setEoiNotes(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
+                        <Button onClick={handleEOISubmit} className="w-full">
+                          Submit EOI
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={offerOpen} onOpenChange={setOfferOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="accent" className="w-full">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Submit Offer
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Submit Sales Offer</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="offer-lead">Select Lead</Label>
+                          <Select value={selectedLead} onValueChange={setSelectedLead}>
+                            <SelectTrigger id="offer-lead">
+                              <SelectValue placeholder="Choose a lead" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockLeads.map((lead) => (
+                                <SelectItem key={lead.id} value={lead.id}>
+                                  {lead.clientName} - ${(lead.budget / 1000000).toFixed(1)}M
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="offer-amount">Offer Amount ($)</Label>
+                          <Input
+                            id="offer-amount"
+                            type="number"
+                            placeholder="Enter offer amount"
+                            value={offerAmount}
+                            onChange={(e) => setOfferAmount(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="offer-terms">Terms & Conditions (Optional)</Label>
+                          <Textarea
+                            id="offer-terms"
+                            placeholder="Enter offer terms..."
+                            value={offerTerms}
+                            onChange={(e) => setOfferTerms(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
+                        <Button onClick={handleOfferSubmit} variant="accent" className="w-full">
+                          Submit Offer
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default PropertyDetail;
