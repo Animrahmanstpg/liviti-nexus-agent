@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2, Heart } from "lucide-react";
+import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2, Heart, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -31,7 +31,10 @@ const PropertyDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("properties")
-        .select("*")
+        .select(`
+          *,
+          project:projects(id, name)
+        `)
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -160,9 +163,23 @@ const PropertyDetail = () => {
           </Link>
           <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight">{property.title}</h1>
-            <div className="mt-1 flex items-center text-muted-foreground">
-              <MapPin className="mr-1 h-4 w-4" />
-              {property.location}
+            <div className="mt-1 flex items-center gap-3 text-muted-foreground">
+              <div className="flex items-center">
+                <MapPin className="mr-1 h-4 w-4" />
+                {property.location}
+              </div>
+              {property.project && (
+                <>
+                  <span>•</span>
+                  <Link 
+                    to={`/projects/${property.project.id}`}
+                    className="flex items-center hover:text-primary hover:underline"
+                  >
+                    <FolderKanban className="mr-1 h-4 w-4" />
+                    {property.project.name}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">

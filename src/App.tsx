@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
+import ProjectDetail from "./pages/ProjectDetail";
 import Leads from "./pages/Leads";
 import Favorites from "./pages/Favorites";
 import Compare from "./pages/Compare";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/properties" element={<Properties />} />
           <Route path="/properties/:id" element={<PropertyDetail />} />
+          <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/compare" element={<Compare />} />
