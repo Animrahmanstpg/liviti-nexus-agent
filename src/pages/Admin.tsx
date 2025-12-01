@@ -22,7 +22,9 @@ import {
 } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/admin/PropertyForm";
 import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
-import { Plus, Pencil, Trash2, Loader2, Copy } from "lucide-react";
+import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings } from "lucide-react";
 
 type Property = {
   id: string;
@@ -188,97 +190,112 @@ const Admin = () => {
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold">Admin Portal</h1>
-          <div className="flex gap-2">
-            <CSVImportWithMapping
-              onImportComplete={() => {
-                queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-              }}
-            />
-            <Button
-              onClick={() => {
-                setEditingProperty(null);
-                setIsDialogOpen(true);
-              }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Property
-            </Button>
-          </div>
-        </div>
+        <h1 className="text-4xl font-bold mb-6">Admin Portal</h1>
 
-        <div className="bg-card rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Beds</TableHead>
-                <TableHead>Baths</TableHead>
-                <TableHead>Area</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {properties?.map((property) => (
-                <TableRow key={property.id}>
-                  <TableCell className="font-medium">{property.title}</TableCell>
-                  <TableCell>{property.type}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                        property.status === "available"
-                          ? "bg-green-100 text-green-800"
-                          : property.status === "reserved"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {property.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>${property.price.toLocaleString()}</TableCell>
-                  <TableCell>{property.location}</TableCell>
-                  <TableCell>{property.bedrooms}</TableCell>
-                  <TableCell>{property.bathrooms}</TableCell>
-                  <TableCell>{property.area} sqm</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingProperty(property);
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDuplicate(property)}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteMutation.mutate(property.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <Tabs defaultValue="properties" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="properties">Properties</TabsTrigger>
+            <TabsTrigger value="custom-fields">
+              <Settings className="w-4 h-4 mr-2" />
+              Custom Fields
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="properties" className="space-y-4">
+            <div className="flex justify-end gap-2">
+              <CSVImportWithMapping
+                onImportComplete={() => {
+                  queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+                }}
+              />
+              <Button
+                onClick={() => {
+                  setEditingProperty(null);
+                  setIsDialogOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Property
+              </Button>
+            </div>
+
+            <div className="bg-card rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Beds</TableHead>
+                    <TableHead>Baths</TableHead>
+                    <TableHead>Area</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {properties?.map((property) => (
+                    <TableRow key={property.id}>
+                      <TableCell className="font-medium">{property.title}</TableCell>
+                      <TableCell>{property.type}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                            property.status === "available"
+                              ? "bg-green-100 text-green-800"
+                              : property.status === "reserved"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {property.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>${property.price.toLocaleString()}</TableCell>
+                      <TableCell>{property.location}</TableCell>
+                      <TableCell>{property.bedrooms}</TableCell>
+                      <TableCell>{property.bathrooms}</TableCell>
+                      <TableCell>{property.area} sqm</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingProperty(property);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDuplicate(property)}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteMutation.mutate(property.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="custom-fields">
+            <CustomFieldsManager />
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
