@@ -354,14 +354,14 @@ export const CustomFieldsManager = () => {
                 <div className="space-y-2">
                   <Label htmlFor="group_id">Field Group (Optional)</Label>
                   <Select
-                    value={fieldFormData.group_id}
-                    onValueChange={(value) => setFieldFormData({ ...fieldFormData, group_id: value })}
+                    value={fieldFormData.group_id || "none"}
+                    onValueChange={(value) => setFieldFormData({ ...fieldFormData, group_id: value === "none" ? "" : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="No group" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No group</SelectItem>
+                      <SelectItem value="none">No group</SelectItem>
                       {fieldGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.label}
