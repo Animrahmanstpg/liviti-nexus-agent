@@ -9,6 +9,7 @@ import PropertyDetail from "./pages/PropertyDetail";
 import Leads from "./pages/Leads";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import BulkImportPage from "./pages/BulkImportPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/leads" element={<Leads />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/bulk-import" element={<BulkImportPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
