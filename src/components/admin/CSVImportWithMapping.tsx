@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -49,19 +50,18 @@ interface PreviewRow {
   isValid: boolean;
 }
 
-const PROPERTY_FIELDS = [
-  { value: "title", label: "Title *", required: true },
-  { value: "type", label: "Type * (apartment/villa/townhouse/penthouse)", required: true },
-  { value: "status", label: "Status * (available/reserved/sold)", required: true },
-  { value: "price", label: "Price *", required: true },
-  { value: "location", label: "Location *", required: true },
-  { value: "bedrooms", label: "Bedrooms *", required: true },
-  { value: "bathrooms", label: "Bathrooms *", required: true },
-  { value: "area", label: "Area (sqft) *", required: true },
-  { value: "image", label: "Image URL", required: false },
-  { value: "description", label: "Description", required: false },
-  { value: "features", label: "Features (comma or semicolon separated)", required: false },
-  { value: null, label: "-- Skip this column --", required: false },
+const STANDARD_PROPERTY_FIELDS = [
+  { value: "title", label: "Title *", required: true, isCustom: false },
+  { value: "type", label: "Type * (apartment/villa/townhouse/penthouse)", required: true, isCustom: false },
+  { value: "status", label: "Status * (available/reserved/sold)", required: true, isCustom: false },
+  { value: "price", label: "Price *", required: true, isCustom: false },
+  { value: "location", label: "Location *", required: true, isCustom: false },
+  { value: "bedrooms", label: "Bedrooms *", required: true, isCustom: false },
+  { value: "bathrooms", label: "Bathrooms *", required: true, isCustom: false },
+  { value: "area", label: "Area (sqft) *", required: true, isCustom: false },
+  { value: "image", label: "Image URL", required: false, isCustom: false },
+  { value: "description", label: "Description", required: false, isCustom: false },
+  { value: "features", label: "Features (comma or semicolon separated)", required: false, isCustom: false },
 ];
 
 export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: () => void }) => {
@@ -74,6 +74,33 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
   const [previewData, setPreviewData] = useState<PreviewRow[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+
+  // Fetch custom fields from database
+  const { data: customFields = [] } = useQuery({
+    queryKey: ["custom-fields"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("custom_fields")
+        .select("*")
+        .order("display_order");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Combine standard and custom fields
+  const PROPERTY_FIELDS = [
+    ...STANDARD_PROPERTY_FIELDS,
+    ...customFields.map(field => ({
+      value: `custom_${field.name}`,
+      label: `${field.label}${field.is_required ? ' *' : ''} (Custom)`,
+      required: field.is_required,
+      isCustom: true,
+      fieldType: field.field_type,
+    })),
+    { value: null, label: "-- Skip this column --", required: false, isCustom: false },
+  ];
 
   const parseCSV = (text: string): { headers: string[]; data: string[][] } => {
     const lines = text.split("\n").filter(line => line.trim());
@@ -172,15 +199,36 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
 
       // Check required fields
       if (PROPERTY_FIELDS.find(f => f.value === mappedField)?.required && !value) {
+        const fieldLabel = PROPERTY_FIELDS.find(f => f.value === mappedField)?.label || mappedField;
         errors.push({
           row: rowIndex,
           field: mappedField,
-          message: `${mappedField} is required but empty`,
+          message: `${fieldLabel} is required but empty`,
           severity: "error",
         });
         return;
       }
 
+      // Handle custom fields validation
+      if (mappedField.startsWith("custom_")) {
+        const customFieldName = mappedField.replace("custom_", "");
+        const customField = customFields.find(f => f.name === customFieldName);
+        
+        if (customField && customField.field_type === "number" && value) {
+          const numValue = parseFloat(value);
+          if (isNaN(numValue)) {
+            errors.push({
+              row: rowIndex,
+              field: mappedField,
+              message: `Invalid ${customField.label}: "${value}" is not a valid number`,
+              severity: "error",
+            });
+          }
+        }
+        return;
+      }
+
+      // Handle standard fields validation
       switch (mappedField) {
         case "price":
         case "bedrooms":
@@ -243,6 +291,7 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
 
   const transformData = (row: string[]): any => {
     const transformed: any = {};
+    const customFieldsData: any = {};
 
     csvHeaders.forEach((header, index) => {
       const mappedField = columnMapping[header];
@@ -250,6 +299,28 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
 
       const value = row[index]?.trim() || "";
 
+      // Handle custom fields
+      if (mappedField.startsWith("custom_")) {
+        const customFieldName = mappedField.replace("custom_", "");
+        const customField = customFields.find(f => f.name === customFieldName);
+        
+        if (customField) {
+          // Process based on field type
+          switch (customField.field_type) {
+            case "number":
+              customFieldsData[customFieldName] = parseFloat(value) || 0;
+              break;
+            case "checkbox":
+              customFieldsData[customFieldName] = value.toLowerCase() === "true" || value === "1";
+              break;
+            default:
+              customFieldsData[customFieldName] = value;
+          }
+        }
+        return;
+      }
+
+      // Handle standard fields
       switch (mappedField) {
         case "price":
         case "bedrooms":
@@ -285,6 +356,11 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
           transformed[mappedField] = value;
       }
     });
+
+    // Add custom fields data if any
+    if (Object.keys(customFieldsData).length > 0) {
+      transformed.custom_fields_data = customFieldsData;
+    }
 
     return transformed;
   };
