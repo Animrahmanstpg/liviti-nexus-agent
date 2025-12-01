@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/admin/PropertyForm";
-import { CSVImport } from "@/components/admin/CSVImport";
+import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { Plus, Pencil, Trash2, Loader2, Copy } from "lucide-react";
 
 type Property = {
@@ -191,7 +191,7 @@ const Admin = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-bold">Admin Portal</h1>
           <div className="flex gap-2">
-            <CSVImport
+            <CSVImportWithMapping
               onImportComplete={() => {
                 queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
               }}
