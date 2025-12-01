@@ -62,6 +62,7 @@ const STANDARD_PROPERTY_FIELDS = [
   { value: "image", label: "Image URL", required: false, isCustom: false },
   { value: "description", label: "Description", required: false, isCustom: false },
   { value: "features", label: "Features (comma or semicolon separated)", required: false, isCustom: false },
+  { value: "project_name", label: "Project Name", required: false, isCustom: false },
 ];
 
 export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: () => void }) => {
@@ -83,6 +84,20 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
         .from("custom_fields")
         .select("*")
         .order("display_order");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch projects from database
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .order("name");
 
       if (error) throw error;
       return data;
@@ -154,6 +169,7 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
       "image": ["photo", "picture", "imageurl", "img"],
       "description": ["desc", "details", "info"],
       "features": ["amenities", "facilities"],
+      "project_name": ["project", "projectname", "development"],
     };
     
     for (const [field, aliasList] of Object.entries(aliases)) {
@@ -407,6 +423,17 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
             transformed[mappedField] = normalizedStatus;
           } else {
             transformed[mappedField] = "available";
+          }
+          break;
+        case "project_name":
+          // Look up project by name and convert to project_id
+          if (value) {
+            const project = projects.find((p: any) => 
+              p.name.toLowerCase() === value.toLowerCase()
+            );
+            if (project) {
+              transformed.project_id = project.id;
+            }
           }
           break;
         default:

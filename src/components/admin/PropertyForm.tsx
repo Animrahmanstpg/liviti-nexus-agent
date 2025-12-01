@@ -53,6 +53,7 @@ const propertyFormSchema = z.object({
   image: z.string().optional(),
   description: z.string().optional(),
   features: z.string().optional(),
+  project_id: z.string().optional(),
 });
 
 type PropertyFormValues = z.infer<typeof propertyFormSchema>;
@@ -71,6 +72,7 @@ interface PropertyFormProps {
     description?: string;
     features?: string[];
     custom_fields_data?: Record<string, any>;
+    project_id?: string;
   };
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
@@ -108,6 +110,19 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
       return data;
     },
   });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      return data;
+    },
+  });
   
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
@@ -123,6 +138,7 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
       image: initialData?.image || "",
       description: initialData?.description || "",
       features: initialData?.features?.join(", ") || "",
+      project_id: initialData?.project_id || "",
     },
   });
 
@@ -186,10 +202,14 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
       }
     });
     
+    // Handle project_id - convert "none" to null
+    const project_id = values.project_id && values.project_id !== "none" ? values.project_id : null;
+    
     await onSubmit({ 
       ...values, 
       features,
-      custom_fields_data: customFieldsData 
+      custom_fields_data: customFieldsData,
+      project_id,
     });
   };
 
@@ -227,6 +247,35 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
               <FormControl>
                 <Input {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="project_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value || "none"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a project (optional)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">No Project</SelectItem>
+                  {projects?.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
