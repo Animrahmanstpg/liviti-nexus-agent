@@ -1,6 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, LayoutDashboard, Users, Home, LogOut, Shield } from "lucide-react";
+import { Building2, LayoutDashboard, Users, Home, LogOut, Shield, Heart } from "lucide-react";
+import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/useUserRole";
@@ -16,11 +17,19 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin } = useIsAdmin();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  }, []);
 
   const navItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/properties", icon: Building2, label: "Properties" },
     { path: "/leads", icon: Users, label: "Leads" },
+    ...(user ? [{ path: "/favorites", icon: Heart, label: "Favorites" }] : []),
   ];
 
   const handleLogout = async () => {

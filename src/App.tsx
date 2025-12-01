@@ -7,6 +7,8 @@ import Dashboard from "./pages/Dashboard";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
 import Leads from "./pages/Leads";
+import Favorites from "./pages/Favorites";
+import Compare from "./pages/Compare";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import BulkImportPage from "./pages/BulkImportPage";
@@ -25,6 +27,8 @@ const App = () => (
           <Route path="/properties" element={<Properties />} />
           <Route path="/properties/:id" element={<PropertyDetail />} />
           <Route path="/leads" element={<Leads />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route path="/compare" element={<Compare />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/bulk-import" element={<BulkImportPage />} />

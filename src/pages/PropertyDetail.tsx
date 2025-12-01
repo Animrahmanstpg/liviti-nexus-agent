@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +10,21 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2 } from "lucide-react";
+import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useFavorites } from "@/hooks/useFavorites";
 
 const PropertyDetail = () => {
   const { id } = useParams();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  }, []);
   
   const { data: property, isLoading: propertyLoading } = useQuery({
     queryKey: ["property", id],
@@ -47,6 +56,19 @@ const PropertyDetail = () => {
   const [offerAmount, setOfferAmount] = useState("");
   const [eoiNotes, setEoiNotes] = useState("");
   const [offerTerms, setOfferTerms] = useState("");
+
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites(user?.id);
+  const isFav = property ? isFavorite(property.id) : false;
+
+  const handleFavoriteClick = () => {
+    if (!user || !property) return;
+
+    if (isFav) {
+      removeFavorite(property.id);
+    } else {
+      addFavorite(property.id);
+    }
+  };
 
   if (propertyLoading || leadsLoading) {
     return (
@@ -125,7 +147,20 @@ const PropertyDetail = () => {
               {property.location}
             </div>
           </div>
-          <Badge className={getStatusColor(property.status)}>{property.status}</Badge>
+          <div className="flex items-center gap-3">
+            <Badge className={getStatusColor(property.status)}>{property.status}</Badge>
+            {user && (
+              <Button
+                size="lg"
+                variant={isFav ? "default" : "outline"}
+                onClick={handleFavoriteClick}
+                className="gap-2"
+              >
+                <Heart className={`w-5 h-5 ${isFav ? 'fill-current' : ''}`} />
+                {isFav ? "Saved" : "Save"}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
