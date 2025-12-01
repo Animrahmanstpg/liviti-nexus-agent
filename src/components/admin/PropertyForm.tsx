@@ -40,6 +40,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 
 const propertyFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -352,7 +353,11 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
               <FormItem>
                 <FormLabel>Location</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <LocationAutocomplete
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Enter property location"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
