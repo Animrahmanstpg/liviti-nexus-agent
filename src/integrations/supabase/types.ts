@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_fields: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          field_type: string
+          help_text: string | null
+          id: string
+          is_required: boolean | null
+          label: string
+          name: string
+          options: Json | null
+          placeholder: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          field_type: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          label: string
+          name: string
+          options?: Json | null
+          placeholder?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          label?: string
+          name?: string
+          options?: Json | null
+          placeholder?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           budget: number
@@ -70,6 +112,7 @@ export type Database = {
           bathrooms: number
           bedrooms: number
           created_at: string | null
+          custom_fields_data: Json | null
           description: string | null
           features: Json | null
           id: string
@@ -86,6 +129,7 @@ export type Database = {
           bathrooms: number
           bedrooms: number
           created_at?: string | null
+          custom_fields_data?: Json | null
           description?: string | null
           features?: Json | null
           id?: string
@@ -102,6 +146,7 @@ export type Database = {
           bathrooms?: number
           bedrooms?: number
           created_at?: string | null
+          custom_fields_data?: Json | null
           description?: string | null
           features?: Json | null
           id?: string

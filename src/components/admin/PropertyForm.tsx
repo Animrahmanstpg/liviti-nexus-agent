@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -13,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -30,6 +33,7 @@ import PropertyCard from "@/components/PropertyCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 const propertyFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -60,8 +64,9 @@ interface PropertyFormProps {
     image?: string;
     description?: string;
     features?: string[];
+    custom_fields_data?: Record<string, any>;
   };
-  onSubmit: (data: Omit<PropertyFormValues, 'features'> & { features: string[] }) => Promise<void>;
+  onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -70,6 +75,20 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(initialData?.image || "");
+  
+  // Fetch custom fields
+  const { data: customFields = [] } = useQuery({
+    queryKey: ["custom-fields"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("custom_fields")
+        .select("*")
+        .order("display_order");
+
+      if (error) throw error;
+      return data;
+    },
+  });
   
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
@@ -139,7 +158,20 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
       ? values.features.split(",").map(f => f.trim()).filter(Boolean)
       : [];
     
-    await onSubmit({ ...values, features });
+    // Extract custom field values
+    const customFieldsData: Record<string, any> = {};
+    customFields.forEach(field => {
+      const fieldValue = (values as any)[`custom_${field.name}`];
+      if (fieldValue !== undefined && fieldValue !== "") {
+        customFieldsData[field.name] = fieldValue;
+      }
+    });
+    
+    await onSubmit({ 
+      ...values, 
+      features,
+      custom_fields_data: customFieldsData 
+    });
   };
 
   const getPreviewData = () => {
@@ -376,6 +408,80 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
             </FormItem>
           )}
         />
+
+        {customFields.length > 0 && (
+          <>
+            <Separator className="my-6" />
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Custom Fields</h3>
+              
+              {customFields.map((field) => {
+                const fieldName = `custom_${field.name}`;
+                const defaultValue = initialData?.custom_fields_data?.[field.name] || "";
+
+                return (
+                  <FormField
+                    key={field.id}
+                    control={form.control}
+                    name={fieldName as any}
+                    render={({ field: formField }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {field.label}
+                          {field.is_required && <span className="text-destructive ml-1">*</span>}
+                        </FormLabel>
+                        <FormControl>
+                          {field.field_type === "textarea" ? (
+                            <Textarea 
+                              {...formField} 
+                              placeholder={field.placeholder}
+                              defaultValue={defaultValue}
+                            />
+                          ) : field.field_type === "checkbox" ? (
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                checked={formField.value as boolean}
+                                onCheckedChange={formField.onChange}
+                                defaultChecked={defaultValue}
+                              />
+                            </div>
+                          ) : field.field_type === "dropdown" ? (
+                            <Select 
+                              onValueChange={formField.onChange} 
+                              defaultValue={defaultValue || formField.value}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={field.placeholder || "Select an option"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.isArray(field.options) && field.options.map((option: string) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input 
+                              type={field.field_type}
+                              {...formField}
+                              placeholder={field.placeholder}
+                              defaultValue={defaultValue}
+                            />
+                          )}
+                        </FormControl>
+                        {field.help_text && (
+                          <FormDescription>{field.help_text}</FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
 
         <div className="flex gap-2">
           <Button type="submit">Save</Button>
