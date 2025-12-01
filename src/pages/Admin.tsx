@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/admin/PropertyForm";
 import { CSVImport } from "@/components/admin/CSVImport";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy } from "lucide-react";
 
 type Property = {
   id: string;
@@ -158,6 +158,16 @@ const Admin = () => {
     }
   };
 
+  const handleDuplicate = (property: Property) => {
+    const { id, ...propertyData } = property;
+    setEditingProperty({
+      ...propertyData,
+      title: `${property.title} (Copy)`,
+      id: '', // Empty id for new property
+    } as Property);
+    setIsDialogOpen(true);
+  };
+
   if (roleLoading || isLoading) {
     return (
       <Layout>
@@ -240,6 +250,13 @@ const Admin = () => {
                         }}
                       >
                         <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDuplicate(property)}
+                      >
+                        <Copy className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
