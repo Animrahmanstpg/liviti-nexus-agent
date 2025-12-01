@@ -14,11 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_field_groups: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_collapsed: boolean | null
+          label: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_collapsed?: boolean | null
+          label: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_collapsed?: boolean | null
+          label?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       custom_fields: {
         Row: {
           created_at: string | null
           display_order: number | null
           field_type: string
+          group_id: string | null
           help_text: string | null
           id: string
           is_required: boolean | null
@@ -32,6 +66,7 @@ export type Database = {
           created_at?: string | null
           display_order?: number | null
           field_type: string
+          group_id?: string | null
           help_text?: string | null
           id?: string
           is_required?: boolean | null
@@ -45,6 +80,7 @@ export type Database = {
           created_at?: string | null
           display_order?: number | null
           field_type?: string
+          group_id?: string | null
           help_text?: string | null
           id?: string
           is_required?: boolean | null
@@ -54,7 +90,15 @@ export type Database = {
           placeholder?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "custom_fields_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "custom_field_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {

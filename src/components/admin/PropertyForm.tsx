@@ -34,6 +34,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Eye, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 const propertyFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -76,12 +82,25 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(initialData?.image || "");
   
-  // Fetch custom fields
+  // Fetch custom fields and groups
   const { data: customFields = [] } = useQuery({
     queryKey: ["custom-fields"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("custom_fields")
+        .select("*")
+        .order("display_order");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: fieldGroups = [] } = useQuery({
+    queryKey: ["custom-field-groups"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("custom_field_groups")
         .select("*")
         .order("display_order");
 
@@ -409,13 +428,14 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
           )}
         />
 
-        {customFields.length > 0 && (
+        {(customFields.length > 0 || fieldGroups.length > 0) && (
           <>
             <Separator className="my-6" />
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Custom Fields</h3>
               
-              {customFields.map((field) => {
+              {/* Ungrouped fields */}
+              {customFields.filter(f => !f.group_id).map((field) => {
                 const fieldName = `custom_${field.name}`;
                 const defaultValue = initialData?.custom_fields_data?.[field.name] || "";
 
@@ -477,6 +497,92 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
                       </FormItem>
                     )}
                   />
+                );
+              })}
+
+              {/* Grouped fields in collapsible sections */}
+              {fieldGroups.map((group) => {
+                const groupFields = customFields.filter(f => f.group_id === group.id);
+                if (groupFields.length === 0) return null;
+
+                return (
+                  <Collapsible key={group.id} defaultOpen={!group.is_collapsed}>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+                      <div className="text-left">
+                        <h4 className="font-semibold">{group.label}</h4>
+                        {group.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
+                        )}
+                      </div>
+                      <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-4 space-y-4">
+                      {groupFields.map((field) => {
+                        const fieldName = `custom_${field.name}`;
+                        const defaultValue = initialData?.custom_fields_data?.[field.name] || "";
+
+                        return (
+                          <FormField
+                            key={field.id}
+                            control={form.control}
+                            name={fieldName as any}
+                            render={({ field: formField }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  {field.label}
+                                  {field.is_required && <span className="text-destructive ml-1">*</span>}
+                                </FormLabel>
+                                <FormControl>
+                                  {field.field_type === "textarea" ? (
+                                    <Textarea 
+                                      {...formField} 
+                                      placeholder={field.placeholder}
+                                      defaultValue={defaultValue}
+                                    />
+                                  ) : field.field_type === "checkbox" ? (
+                                    <div className="flex items-center space-x-2">
+                                      <Checkbox 
+                                        checked={formField.value as boolean}
+                                        onCheckedChange={formField.onChange}
+                                        defaultChecked={defaultValue}
+                                      />
+                                    </div>
+                                  ) : field.field_type === "dropdown" ? (
+                                    <Select 
+                                      onValueChange={formField.onChange} 
+                                      defaultValue={defaultValue || formField.value}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={field.placeholder || "Select an option"} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Array.isArray(field.options) && field.options.map((option: string) => (
+                                          <SelectItem key={option} value={option}>
+                                            {option}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Input 
+                                      type={field.field_type}
+                                      {...formField}
+                                      placeholder={field.placeholder}
+                                      defaultValue={defaultValue}
+                                    />
+                                  )}
+                                </FormControl>
+                                {field.help_text && (
+                                  <FormDescription>{field.help_text}</FormDescription>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        );
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
                 );
               })}
             </div>
