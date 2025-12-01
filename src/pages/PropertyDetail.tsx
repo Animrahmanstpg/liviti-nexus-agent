@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { mockProperties } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,19 +9,54 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign } from "lucide-react";
+import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { mockLeads } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const PropertyDetail = () => {
   const { id } = useParams();
-  const property = mockProperties.find((p) => p.id === id);
+  
+  const { data: property, isLoading: propertyLoading } = useQuery({
+    queryKey: ["property", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: leads, isLoading: leadsLoading } = useQuery({
+    queryKey: ["leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
   const [eoiOpen, setEoiOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState("");
   const [offerAmount, setOfferAmount] = useState("");
   const [eoiNotes, setEoiNotes] = useState("");
   const [offerTerms, setOfferTerms] = useState("");
+
+  if (propertyLoading || leadsLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   if (!property) {
     return (
@@ -139,7 +173,7 @@ const PropertyDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
-                  {property.features.map((feature, index) => (
+                  {Array.isArray(property.features) && (property.features as string[]).map((feature, index) => (
                     <div key={index} className="flex items-center gap-2 rounded-lg border p-3">
                       <div className="h-2 w-2 rounded-full bg-primary" />
                       <span className="text-sm">{feature}</span>
@@ -201,9 +235,9 @@ const PropertyDetail = () => {
                               <SelectValue placeholder="Choose a lead" />
                             </SelectTrigger>
                             <SelectContent>
-                              {mockLeads.map((lead) => (
+                              {leads?.map((lead) => (
                                 <SelectItem key={lead.id} value={lead.id}>
-                                  {lead.clientName} - ${(lead.budget / 1000000).toFixed(1)}M
+                                  {lead.client_name} - ${(Number(lead.budget) / 1000000).toFixed(1)}M
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -245,9 +279,9 @@ const PropertyDetail = () => {
                               <SelectValue placeholder="Choose a lead" />
                             </SelectTrigger>
                             <SelectContent>
-                              {mockLeads.map((lead) => (
+                              {leads?.map((lead) => (
                                 <SelectItem key={lead.id} value={lead.id}>
-                                  {lead.clientName} - ${(lead.budget / 1000000).toFixed(1)}M
+                                  {lead.client_name} - ${(Number(lead.budget) / 1000000).toFixed(1)}M
                                 </SelectItem>
                               ))}
                             </SelectContent>
