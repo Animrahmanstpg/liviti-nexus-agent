@@ -11,6 +11,7 @@ import Favorites from "./pages/Favorites";
 import Compare from "./pages/Compare";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import Analytics from "./pages/Analytics";
 import BulkImportPage from "./pages/BulkImportPage";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/compare" element={<Compare />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/bulk-import" element={<BulkImportPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
