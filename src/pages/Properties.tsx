@@ -16,6 +16,7 @@ const Properties = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
   const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
 
   const { data: properties, isLoading } = useQuery({
@@ -23,8 +24,23 @@ const Properties = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("properties")
-        .select("*")
+        .select(`
+          *,
+          project:projects(id, name)
+        `)
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: projects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .order("name");
       if (error) throw error;
       return data;
     },
@@ -36,7 +52,8 @@ const Properties = () => {
       property.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || property.status === statusFilter;
     const matchesType = typeFilter === "all" || property.type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    const matchesProject = projectFilter === "all" || property.project_id === projectFilter;
+    return matchesSearch && matchesStatus && matchesType && matchesProject;
   });
 
   const togglePropertyForComparison = (propertyId: string) => {
@@ -98,6 +115,19 @@ const Properties = () => {
                 className="pl-9"
               />
             </div>
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projects?.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />

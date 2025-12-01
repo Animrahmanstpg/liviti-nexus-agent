@@ -3,14 +3,14 @@ import { Property } from "@/types/property";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bed, Bath, Maximize, MapPin, Heart } from "lucide-react";
+import { Bed, Bath, Maximize, MapPin, Heart, FolderKanban } from "lucide-react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 
 interface PropertyCardProps {
-  property: Property;
+  property: Property & { project?: { id: string; name: string } | null };
 }
 
 const PropertyCard = ({ property }: PropertyCardProps) => {
@@ -85,6 +85,18 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
               <MapPin className="mr-1 h-4 w-4" />
               {property.location}
             </div>
+            {property.project && (
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <FolderKanban className="mr-1 h-3 w-3" />
+                <Link 
+                  to={`/projects/${property.project.id}`}
+                  className="hover:text-primary hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {property.project.name}
+                </Link>
+              </div>
+            )}
           </div>
           
           <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">

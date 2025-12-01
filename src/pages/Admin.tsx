@@ -83,7 +83,10 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("properties")
-        .select("*")
+        .select(`
+          *,
+          project:projects(id, name)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -224,11 +227,12 @@ const Admin = () => {
               </Button>
             </div>
 
-            <div className="bg-card rounded-lg border">
+            <div className="bg-card rounded-lg border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
+                    <TableHead>Project</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Price</TableHead>
@@ -240,9 +244,16 @@ const Admin = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {properties?.map((property) => (
+                  {properties?.map((property: any) => (
                     <TableRow key={property.id}>
                       <TableCell className="font-medium">{property.title}</TableCell>
+                      <TableCell>
+                        {property.project ? (
+                          <span className="text-sm text-muted-foreground">{property.project.name}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">No project</span>
+                        )}
+                      </TableCell>
                       <TableCell>{property.type}</TableCell>
                       <TableCell>
                         <span
