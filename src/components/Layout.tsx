@@ -78,16 +78,28 @@ const Layout = ({ children }: LayoutProps) => {
               );
             })}
             {isAdmin && (
-              <Link
-                to="/admin"
-                className={cn(
-                  "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
-                  location.pathname === "/admin" ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Shield className="h-4 w-4" />
-                Admin
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                    location.pathname === "/admin" ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
+                </Link>
+                <Link
+                  to="/analytics"
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                    location.pathname === "/analytics" ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Analytics
+                </Link>
+              </>
             )}
           </nav>
 

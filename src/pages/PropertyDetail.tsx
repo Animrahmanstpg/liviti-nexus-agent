@@ -39,6 +39,24 @@ const PropertyDetail = () => {
     },
   });
 
+  // Track property view
+  useEffect(() => {
+    if (id) {
+      const trackView = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        await supabase
+          .from("property_views")
+          .insert({
+            property_id: id,
+            user_id: user?.id || null
+          });
+      };
+
+      trackView();
+    }
+  }, [id]);
+
   const { data: leads, isLoading: leadsLoading } = useQuery({
     queryKey: ["leads"],
     queryFn: async () => {
