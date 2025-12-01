@@ -1,8 +1,11 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Building2, LayoutDashboard, Users, Home, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Building2, LayoutDashboard, Users, Home, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,12 +13,28 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { isAdmin } = useIsAdmin();
 
   const navItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/properties", icon: Building2, label: "Properties" },
     { path: "/leads", icon: Users, label: "Leads" },
   ];
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
+    } else {
+      navigate("/auth");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -49,9 +68,21 @@ const Layout = ({ children }: LayoutProps) => {
                 </Link>
               );
             })}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                  location.pathname === "/admin" ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </nav>
 
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
             Logout
           </Button>

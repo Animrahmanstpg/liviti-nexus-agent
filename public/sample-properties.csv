@@ -1,0 +1,6 @@
+title,type,status,price,location,bedrooms,bathrooms,area,image,description,features
+Luxury Beachfront Villa,villa,available,2500000,Marina Bay,5,4,450,https://images.unsplash.com/photo-1512917774080-9991f1c4c750,Stunning beachfront villa with private pool and ocean views,"Pool;Garden;Beach Access;Smart Home"
+Modern Downtown Apartment,apartment,available,850000,Downtown District,2,2,120,https://images.unsplash.com/photo-1545324418-cc1a3fa10c00,Contemporary apartment in the heart of the city,"Gym;Parking;24/7 Security;Balcony"
+Spacious Family Townhouse,townhouse,reserved,1200000,Suburban Heights,4,3,280,https://images.unsplash.com/photo-1564013799919-ab600027ffc6,Perfect family home with large backyard,"Garden;Garage;Playground;Storage"
+Exclusive Penthouse Suite,penthouse,available,3500000,Sky Tower,4,4,380,https://images.unsplash.com/photo-1600596542815-ffad4c1539a9,Top floor penthouse with panoramic city views,"Rooftop Terrace;Smart Home;Premium Fixtures;Private Elevator"
+Cozy Garden Apartment,apartment,sold,650000,Green Valley,1,1,75,https://images.unsplash.com/photo-1522708323590-d24dbb6b0267,Charming apartment with garden access,"Garden View;Pet Friendly;Parking;Storage"
