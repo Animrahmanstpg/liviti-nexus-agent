@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 
 type Project = {
   id: string;
@@ -248,11 +249,10 @@ export const ProjectsManager = () => {
 
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
+              <LocationAutocomplete
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="Enter location"
+                onChange={(value) => setFormData({ ...formData, location: value })}
+                placeholder="Enter project location"
               />
             </div>
 
