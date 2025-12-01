@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,6 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import PropertyCard from "@/components/PropertyCard";
+import { supabase } from "@/integrations/supabase/client";
+import { Eye, Upload, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const propertyFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -55,6 +66,11 @@ interface PropertyFormProps {
 }
 
 export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormProps) => {
+  const { toast } = useToast();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(initialData?.image || "");
+  
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
@@ -72,12 +88,80 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
     },
   });
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('property-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('property-images')
+        .getPublicUrl(filePath);
+
+      setUploadedImageUrl(publicUrl);
+      form.setValue('image', publicUrl);
+      
+      toast({
+        title: "Image uploaded successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to upload image",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async (values: PropertyFormValues) => {
     const features = values.features
       ? values.features.split(",").map(f => f.trim()).filter(Boolean)
       : [];
     
     await onSubmit({ ...values, features });
+  };
+
+  const getPreviewData = () => {
+    const values = form.getValues();
+    const features = values.features
+      ? values.features.split(",").map(f => f.trim()).filter(Boolean)
+      : [];
+    
+    return {
+      id: 'preview',
+      title: values.title || 'Property Title',
+      type: values.type,
+      status: values.status,
+      price: values.price || 0,
+      location: values.location || 'Location',
+      bedrooms: values.bedrooms || 0,
+      bathrooms: values.bathrooms || 0,
+      area: values.area || 0,
+      image: uploadedImageUrl || values.image || '/placeholder.svg',
+      description: values.description || '',
+      features,
+    };
   };
 
   return (
@@ -225,9 +309,40 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
           name="image"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Property Image</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                      className="cursor-pointer"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {(uploadedImageUrl || field.value) && (
+                    <div className="relative aspect-video w-full max-w-xs overflow-hidden rounded-lg border">
+                      <img
+                        src={uploadedImageUrl || field.value}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <Input {...field} placeholder="Or enter image URL" />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -264,11 +379,28 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
 
         <div className="flex gap-2">
           <Button type="submit">Save</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsPreviewOpen(true)}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Preview
+          </Button>
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
         </div>
       </form>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Property Preview</DialogTitle>
+          </DialogHeader>
+          <PropertyCard property={getPreviewData()} />
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 };
