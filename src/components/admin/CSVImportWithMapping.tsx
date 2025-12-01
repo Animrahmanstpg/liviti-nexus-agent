@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, ArrowRight, X } from "lucide-react";
+import { Upload, ArrowRight, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,9 +20,33 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface ColumnMapping {
   [csvColumn: string]: string | null;
+}
+
+interface ValidationError {
+  row: number;
+  field: string;
+  message: string;
+  severity: "error" | "warning";
+}
+
+interface PreviewRow {
+  rowIndex: number;
+  data: any;
+  errors: ValidationError[];
+  isValid: boolean;
 }
 
 const PROPERTY_FIELDS = [
@@ -46,6 +70,8 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewRow[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -134,6 +160,87 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
     return true;
   };
 
+  const validateRow = (row: string[], rowIndex: number): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    const transformed: any = {};
+
+    csvHeaders.forEach((header, index) => {
+      const mappedField = columnMapping[header];
+      if (!mappedField) return;
+
+      const value = row[index]?.trim() || "";
+
+      // Check required fields
+      if (PROPERTY_FIELDS.find(f => f.value === mappedField)?.required && !value) {
+        errors.push({
+          row: rowIndex,
+          field: mappedField,
+          message: `${mappedField} is required but empty`,
+          severity: "error",
+        });
+        return;
+      }
+
+      switch (mappedField) {
+        case "price":
+        case "bedrooms":
+        case "bathrooms":
+        case "area":
+          const numValue = parseFloat(value.replace(/[$,]/g, ""));
+          if (value && (isNaN(numValue) || numValue <= 0)) {
+            errors.push({
+              row: rowIndex,
+              field: mappedField,
+              message: `Invalid ${mappedField}: "${value}" is not a valid number`,
+              severity: "error",
+            });
+          }
+          transformed[mappedField] = numValue || 0;
+          break;
+        case "type":
+          const normalizedType = value.toLowerCase();
+          if (value && !["apartment", "villa", "townhouse", "penthouse"].includes(normalizedType)) {
+            errors.push({
+              row: rowIndex,
+              field: mappedField,
+              message: `Invalid type: "${value}". Must be apartment, villa, townhouse, or penthouse`,
+              severity: "error",
+            });
+            transformed[mappedField] = "apartment";
+          } else {
+            transformed[mappedField] = normalizedType || "apartment";
+          }
+          break;
+        case "status":
+          const normalizedStatus = value.toLowerCase();
+          if (value && !["available", "reserved", "sold"].includes(normalizedStatus)) {
+            errors.push({
+              row: rowIndex,
+              field: mappedField,
+              message: `Invalid status: "${value}". Must be available, reserved, or sold`,
+              severity: "warning",
+            });
+            transformed[mappedField] = "available";
+          } else {
+            transformed[mappedField] = normalizedStatus || "available";
+          }
+          break;
+        case "features":
+          if (value) {
+            const separator = value.includes(";") ? ";" : ",";
+            transformed[mappedField] = value.split(separator).map(f => f.trim()).filter(Boolean);
+          } else {
+            transformed[mappedField] = [];
+          }
+          break;
+        default:
+          transformed[mappedField] = value;
+      }
+    });
+
+    return errors;
+  };
+
   const transformData = (row: string[]): any => {
     const transformed: any = {};
 
@@ -141,7 +248,7 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
       const mappedField = columnMapping[header];
       if (!mappedField) return;
 
-      const value = row[index];
+      const value = row[index]?.trim() || "";
 
       switch (mappedField) {
         case "price":
@@ -182,21 +289,39 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
     return transformed;
   };
 
-  const handleImport = async () => {
+  const handlePreview = () => {
     if (!validateMapping()) return;
 
+    const preview: PreviewRow[] = csvData
+      .filter(row => row.some(cell => cell.trim()))
+      .map((row, index) => {
+        const errors = validateRow(row, index + 2); // +2 for header row and 1-based indexing
+        const data = transformData(row);
+        
+        return {
+          rowIndex: index + 2,
+          data,
+          errors,
+          isValid: errors.filter(e => e.severity === "error").length === 0,
+        };
+      });
+
+    setPreviewData(preview);
+    setShowMappingDialog(false);
+    setShowPreviewDialog(true);
+  };
+
+  const handleImport = async () => {
     setIsUploading(true);
 
     try {
-      const properties = csvData
-        .filter(row => row.some(cell => cell.trim()))
-        .map(transformData)
-        .filter(prop => prop.title && prop.price > 0);
+      const validRows = previewData.filter(row => row.isValid);
+      const properties = validRows.map(row => row.data);
 
       if (properties.length === 0) {
         toast({
           title: "No valid data",
-          description: "No valid properties found in the CSV",
+          description: "No valid properties to import",
           variant: "destructive",
         });
         return;
@@ -213,11 +338,13 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
         description: `Imported ${properties.length} properties`,
       });
 
+      setShowPreviewDialog(false);
       setShowMappingDialog(false);
       setFile(null);
       setCsvHeaders([]);
       setCsvData([]);
       setColumnMapping({});
+      setPreviewData([]);
       onImportComplete();
     } catch (error: any) {
       console.error("CSV import error:", error);
@@ -301,18 +428,165 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
 
           <div className="flex items-center justify-between pt-4 border-t">
             <div className="text-sm text-muted-foreground">
-              {csvData.length} rows will be imported
+              {csvData.length} rows ready for preview
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => setShowMappingDialog(false)}
-                disabled={isUploading}
               >
                 Cancel
               </Button>
-              <Button onClick={handleImport} disabled={isUploading}>
-                {isUploading ? "Importing..." : "Import Properties"}
+              <Button onClick={handlePreview}>
+                Preview & Validate
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-6xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Preview & Validate Data</DialogTitle>
+            <DialogDescription>
+              Review your data before importing. Rows with errors cannot be imported.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-4">
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-semibold">{previewData.filter(r => r.isValid).length}</div>
+                  <div className="text-xs text-muted-foreground">Valid rows</div>
+                </AlertDescription>
+              </Alert>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-semibold">
+                    {previewData.filter(r => r.errors.some(e => e.severity === "error")).length}
+                  </div>
+                  <div className="text-xs">Rows with errors</div>
+                </AlertDescription>
+              </Alert>
+              <Alert>
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription>
+                  <div className="font-semibold">
+                    {previewData.filter(r => 
+                      r.errors.some(e => e.severity === "warning") && 
+                      !r.errors.some(e => e.severity === "error")
+                    ).length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Rows with warnings</div>
+                </AlertDescription>
+              </Alert>
+            </div>
+
+            {/* Data Table */}
+            <ScrollArea className="h-[500px] border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">Row</TableHead>
+                    <TableHead className="w-20">Status</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Beds</TableHead>
+                    <TableHead>Baths</TableHead>
+                    <TableHead>Issues</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {previewData.map((row) => (
+                    <TableRow key={row.rowIndex} className={!row.isValid ? "bg-destructive/5" : ""}>
+                      <TableCell className="font-mono text-xs">{row.rowIndex}</TableCell>
+                      <TableCell>
+                        {row.isValid ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Valid
+                          </Badge>
+                        ) : row.errors.some(e => e.severity === "error") ? (
+                          <Badge variant="destructive">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            Error
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Warning
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">{row.data.title || "-"}</TableCell>
+                      <TableCell className="capitalize">{row.data.type || "-"}</TableCell>
+                      <TableCell>${row.data.price?.toLocaleString() || "0"}</TableCell>
+                      <TableCell>{row.data.bedrooms || "-"}</TableCell>
+                      <TableCell>{row.data.bathrooms || "-"}</TableCell>
+                      <TableCell>
+                        {row.errors.length > 0 && (
+                          <div className="space-y-1 max-w-[300px]">
+                            {row.errors.map((error, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`text-xs ${
+                                  error.severity === "error" 
+                                    ? "text-destructive" 
+                                    : "text-yellow-600"
+                                }`}
+                              >
+                                • {error.message}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPreviewDialog(false);
+                  setShowMappingDialog(true);
+                }}
+              >
+                Back to Mapping
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPreviewDialog(false);
+                  setFile(null);
+                  setCsvHeaders([]);
+                  setCsvData([]);
+                  setColumnMapping({});
+                  setPreviewData([]);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleImport} 
+                disabled={isUploading || previewData.filter(r => r.isValid).length === 0}
+              >
+                {isUploading 
+                  ? "Importing..." 
+                  : `Import ${previewData.filter(r => r.isValid).length} Valid Rows`}
               </Button>
             </div>
           </div>
