@@ -114,6 +114,57 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
     return { headers, data };
   };
 
+  const autoMapColumn = (csvHeader: string): string | null => {
+    const normalizedHeader = csvHeader.toLowerCase().replace(/[^a-z0-9]/g, "");
+    
+    // Try exact match first
+    let matchingField = PROPERTY_FIELDS.find(
+      field => field.value && normalizedHeader === field.value.toLowerCase().replace(/[^a-z0-9]/g, "")
+    );
+    
+    if (matchingField) return matchingField.value;
+    
+    // Try partial match - header contains field name or vice versa
+    matchingField = PROPERTY_FIELDS.find(field => {
+      if (!field.value) return false;
+      const normalizedFieldValue = field.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const normalizedFieldLabel = field.label.toLowerCase().replace(/[^a-z0-9]/g, "");
+      
+      // For custom fields, remove "custom_" prefix for matching
+      const fieldNameForMatching = normalizedFieldValue.replace("custom_", "");
+      
+      return normalizedHeader.includes(fieldNameForMatching) || 
+             fieldNameForMatching.includes(normalizedHeader) ||
+             normalizedHeader.includes(normalizedFieldLabel) ||
+             normalizedFieldLabel.includes(normalizedHeader);
+    });
+    
+    if (matchingField) return matchingField.value;
+    
+    // Try common aliases
+    const aliases: { [key: string]: string[] } = {
+      "title": ["name", "propertyname", "propertytitle"],
+      "type": ["propertytype", "category"],
+      "status": ["propertystatus", "availability", "state"],
+      "price": ["cost", "amount", "value"],
+      "location": ["address", "city", "area", "region"],
+      "bedrooms": ["beds", "bedroom", "bed", "numberbedrooms"],
+      "bathrooms": ["baths", "bathroom", "bath", "numberbathrooms"],
+      "area": ["sqft", "squarefeet", "size", "aream2", "sqm"],
+      "image": ["photo", "picture", "imageurl", "img"],
+      "description": ["desc", "details", "info"],
+      "features": ["amenities", "facilities"],
+    };
+    
+    for (const [field, aliasList] of Object.entries(aliases)) {
+      if (aliasList.some(alias => normalizedHeader.includes(alias) || alias.includes(normalizedHeader))) {
+        return field;
+      }
+    }
+    
+    return null;
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
@@ -135,20 +186,26 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
       setCsvHeaders(headers);
       setCsvData(data);
       
-      // Auto-map columns with matching names
+      // Auto-map columns with intelligent matching
       const autoMapping: ColumnMapping = {};
       headers.forEach(header => {
-        const normalizedHeader = header.toLowerCase().replace(/[^a-z]/g, "");
-        const matchingField = PROPERTY_FIELDS.find(
-          field => field.value && normalizedHeader.includes(field.value.toLowerCase())
-        );
-        if (matchingField) {
-          autoMapping[header] = matchingField.value;
+        const matchedField = autoMapColumn(header);
+        if (matchedField) {
+          autoMapping[header] = matchedField;
         }
       });
       
       setColumnMapping(autoMapping);
       setShowMappingDialog(true);
+      
+      // Show feedback about auto-mapping
+      const mappedCount = Object.values(autoMapping).filter(Boolean).length;
+      if (mappedCount > 0) {
+        toast({
+          title: "Auto-mapped columns",
+          description: `Automatically mapped ${mappedCount} of ${headers.length} columns. Review and adjust as needed.`,
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error reading file",
