@@ -1,15 +1,42 @@
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, FileText, TrendingUp } from "lucide-react";
-import { mockProperties, mockLeads } from "@/data/mockData";
+import { Building2, Users, FileText, TrendingUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import heroProperty from "@/assets/hero-property.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Dashboard = () => {
-  const availableProperties = mockProperties.filter((p) => p.status === "available").length;
-  const activeLeads = mockLeads.filter((l) => ["new", "contacted", "qualified"].includes(l.status)).length;
-  const wonDeals = mockLeads.filter((l) => l.status === "won").length;
+  const { data: properties, isLoading: propertiesLoading } = useQuery({
+    queryKey: ["properties"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: leads, isLoading: leadsLoading } = useQuery({
+    queryKey: ["leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const availableProperties = properties?.filter((p) => p.status === "available").length || 0;
+  const activeLeads = leads?.filter((l) => ["new", "contacted", "qualified"].includes(l.status)).length || 0;
+  const wonDeals = leads?.filter((l) => l.status === "won").length || 0;
+  
+  const isLoading = propertiesLoading || leadsLoading;
 
   const stats = [
     {
@@ -41,6 +68,16 @@ const Dashboard = () => {
       color: "text-muted-foreground",
     },
   ];
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -99,7 +136,7 @@ const Dashboard = () => {
               <CardTitle>Recent Properties</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockProperties.slice(0, 3).map((property) => (
+              {properties?.slice(0, 3).map((property) => (
                 <div key={property.id} className="flex items-center gap-4 rounded-lg border p-3">
                   <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                     <img
@@ -130,14 +167,14 @@ const Dashboard = () => {
               <CardTitle>Recent Leads</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockLeads.slice(0, 3).map((lead) => (
+              {leads?.slice(0, 3).map((lead) => (
                 <div key={lead.id} className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none">{lead.clientName}</p>
+                    <p className="text-sm font-medium leading-none">{lead.client_name}</p>
                     <p className="text-sm text-muted-foreground">{lead.email}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">${(lead.budget / 1000000).toFixed(1)}M</p>
+                    <p className="text-sm font-semibold">${(Number(lead.budget) / 1000000).toFixed(1)}M</p>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       lead.status === "qualified" ? "bg-accent/10 text-accent" :
                       lead.status === "contacted" ? "bg-primary/10 text-primary" :

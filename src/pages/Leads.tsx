@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { mockLeads } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,11 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Mail, Phone, Calendar } from "lucide-react";
+import { Search, Plus, Mail, Phone, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { LeadStatus } from "@/types/property";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";
 
 const Leads = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
@@ -26,15 +29,52 @@ const Leads = () => {
     notes: "",
   });
 
-  const filteredLeads = mockLeads.filter((lead) => {
+  const { data: leads, isLoading } = useQuery({
+    queryKey: ["leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const createLeadMutation = useMutation({
+    mutationFn: async (leadData: typeof newLead) => {
+      const { error } = await supabase
+        .from("leads")
+        .insert([{
+          client_name: leadData.name,
+          email: leadData.email,
+          phone: leadData.phone,
+          budget: Number(leadData.budget),
+          notes: leadData.notes,
+          status: "new",
+        }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      toast.success("Lead created successfully!");
+      setCreateOpen(false);
+      setNewLead({ name: "", email: "", phone: "", budget: "", notes: "" });
+    },
+    onError: (error: any) => {
+      toast.error("Failed to create lead: " + error.message);
+    },
+  });
+
+  const filteredLeads = (leads || []).filter((lead) => {
     const matchesSearch =
-      lead.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: LeadStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "new":
         return "bg-primary/10 text-primary border-primary/20";
@@ -58,10 +98,18 @@ const Leads = () => {
       toast.error("Please fill in all required fields");
       return;
     }
-    toast.success("Lead created successfully!");
-    setCreateOpen(false);
-    setNewLead({ name: "", email: "", phone: "", budget: "", notes: "" });
+    createLeadMutation.mutate(newLead);
   };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -184,7 +232,7 @@ const Leads = () => {
               <TableBody>
                 {filteredLeads.map((lead) => (
                   <TableRow key={lead.id}>
-                    <TableCell className="font-medium">{lead.clientName}</TableCell>
+                    <TableCell className="font-medium">{lead.client_name}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm">
@@ -198,19 +246,19 @@ const Leads = () => {
                       </div>
                     </TableCell>
                     <TableCell className="font-semibold">
-                      ${(lead.budget / 1000000).toFixed(1)}M
+                      ${(Number(lead.budget) / 1000000).toFixed(1)}M
                     </TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(lead.status)}>{lead.status}</Badge>
+                      <Badge className={getStatusColor(lead.status as string)}>{lead.status}</Badge>
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate">
-                      {lead.propertyInterest || "—"}
+                      {lead.property_interest || "—"}
                     </TableCell>
                     <TableCell>
-                      {lead.lastContact ? (
+                      {lead.last_contact ? (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
-                          {lead.lastContact.toLocaleDateString()}
+                          {new Date(lead.last_contact).toLocaleDateString()}
                         </div>
                       ) : (
                         "—"

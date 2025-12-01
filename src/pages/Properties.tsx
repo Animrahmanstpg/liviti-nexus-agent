@@ -1,19 +1,32 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import PropertyCard from "@/components/PropertyCard";
-import { mockProperties } from "@/data/mockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Properties = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  const filteredProperties = mockProperties.filter((property) => {
+  const { data: properties, isLoading } = useQuery({
+    queryKey: ["properties"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filteredProperties = (properties || []).filter((property) => {
     const matchesSearch =
       property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -21,6 +34,16 @@ const Properties = () => {
     const matchesType = typeFilter === "all" || property.type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -75,13 +98,13 @@ const Properties = () => {
 
         {/* Results Count */}
         <div className="text-sm text-muted-foreground">
-          Showing {filteredProperties.length} of {mockProperties.length} properties
+          Showing {filteredProperties.length} of {properties?.length || 0} properties
         </div>
 
         {/* Properties Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProperties.map((property) => (
-            <PropertyCard key={property.id} property={property} />
+            <PropertyCard key={property.id} property={property as any} />
           ))}
         </div>
 
