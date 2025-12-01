@@ -48,24 +48,31 @@ const Admin = () => {
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const checkAuthAndRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to access the admin panel",
+          variant: "destructive",
+        });
         navigate("/auth");
+        return;
+      }
+
+      // Wait for role to load
+      if (!roleLoading && !isAdmin) {
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to access the admin panel",
+          variant: "destructive",
+        });
+        navigate("/");
       }
     };
-    checkAuth();
-  }, [navigate]);
 
-  useEffect(() => {
-    if (!roleLoading && !isAdmin) {
-      toast({
-        title: "Access denied",
-        description: "You don't have permission to access the admin panel",
-        variant: "destructive",
-      });
-      navigate("/");
-    }
+    checkAuthAndRole();
   }, [isAdmin, roleLoading, navigate, toast]);
 
   const { data: properties, isLoading } = useQuery({
