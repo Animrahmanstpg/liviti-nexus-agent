@@ -2,13 +2,44 @@ import { Link } from "react-router-dom";
 import { Property } from "@/types/property";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bed, Bath, Maximize, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Bed, Bath, Maximize, MapPin, Heart } from "lucide-react";
+import { useFavorites } from "@/hooks/useFavorites";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { User } from "@supabase/supabase-js";
 
 interface PropertyCardProps {
   property: Property;
 }
 
 const PropertyCard = ({ property }: PropertyCardProps) => {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  }, []);
+
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites(user?.id);
+  const isFav = isFavorite(property.id);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user) {
+      return;
+    }
+
+    if (isFav) {
+      removeFavorite(property.id);
+    } else {
+      addFavorite(property.id);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
@@ -36,6 +67,16 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
               {property.status}
             </Badge>
           </div>
+          {user && (
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-9 w-9"
+              onClick={handleFavoriteClick}
+            >
+              <Heart className={`w-4 h-4 ${isFav ? 'fill-accent text-accent' : ''}`} />
+            </Button>
+          )}
         </div>
         <CardContent className="p-5">
           <div className="mb-3">
