@@ -131,6 +131,7 @@ export const CustomFieldsManager = () => {
     mutationFn: async (fieldData: any) => {
       const { error } = await supabase.from("custom_fields").insert([{
         ...fieldData,
+        group_id: fieldData.group_id || null,
         options: fieldData.field_type === "dropdown" 
           ? fieldData.options.split(",").map((o: string) => o.trim()).filter(Boolean)
           : [],
@@ -159,6 +160,7 @@ export const CustomFieldsManager = () => {
         .from("custom_fields")
         .update({
           ...fieldData,
+          group_id: fieldData.group_id || null,
           options: fieldData.field_type === "dropdown" 
             ? fieldData.options.split(",").map((o: string) => o.trim()).filter(Boolean)
             : [],
