@@ -23,8 +23,9 @@ import {
 import { PropertyForm } from "@/components/admin/PropertyForm";
 import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
+import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban } from "lucide-react";
 
 type Property = {
   id: string;
@@ -193,8 +194,12 @@ const Admin = () => {
         <h1 className="text-4xl font-bold mb-6">Admin Portal</h1>
 
         <Tabs defaultValue="properties" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="properties">Properties</TabsTrigger>
+            <TabsTrigger value="projects">
+              <FolderKanban className="w-4 h-4 mr-2" />
+              Projects
+            </TabsTrigger>
             <TabsTrigger value="custom-fields">
               <Settings className="w-4 h-4 mr-2" />
               Custom Fields
@@ -290,6 +295,10 @@ const Admin = () => {
                 </TableBody>
               </Table>
             </div>
+          </TabsContent>
+
+          <TabsContent value="projects">
+            <ProjectsManager />
           </TabsContent>
 
           <TabsContent value="custom-fields">

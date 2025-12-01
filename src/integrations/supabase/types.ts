@@ -150,6 +150,36 @@ export type Database = {
           },
         ]
       }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           area: number
@@ -163,6 +193,7 @@ export type Database = {
           image: string | null
           location: string
           price: number
+          project_id: string | null
           status: string
           title: string
           type: string
@@ -180,6 +211,7 @@ export type Database = {
           image?: string | null
           location: string
           price: number
+          project_id?: string | null
           status?: string
           title: string
           type: string
@@ -197,12 +229,21 @@ export type Database = {
           image?: string | null
           location?: string
           price?: number
+          project_id?: string | null
           status?: string
           title?: string
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "properties_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_favorites: {
         Row: {
