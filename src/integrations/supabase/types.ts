@@ -430,6 +430,50 @@ export type Database = {
           },
         ]
       }
+      property_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          name: string
+          property_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          name: string
+          property_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          name?: string
+          property_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_favorites: {
         Row: {
           created_at: string | null
