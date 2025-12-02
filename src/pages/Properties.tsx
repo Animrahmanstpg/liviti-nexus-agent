@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import PropertyCard from "@/components/PropertyCard";
+import PropertyCardSkeleton from "@/components/PropertyCardSkeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ const Properties = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -47,15 +49,31 @@ const Properties = () => {
     },
   });
 
-  const filteredProperties = (properties || []).filter((property) => {
-    const matchesSearch =
-      property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || property.status === statusFilter;
-    const matchesType = typeFilter === "all" || property.type === typeFilter;
-    const matchesProject = projectFilter === "all" || property.project_id === projectFilter;
-    return matchesSearch && matchesStatus && matchesType && matchesProject;
-  });
+  const filteredProperties = (properties || [])
+    .filter((property) => {
+      const matchesSearch =
+        property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        property.location.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || property.status === statusFilter;
+      const matchesType = typeFilter === "all" || property.type === typeFilter;
+      const matchesProject = projectFilter === "all" || property.project_id === projectFilter;
+      return matchesSearch && matchesStatus && matchesType && matchesProject;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "price-asc":
+          return a.price - b.price;
+        case "price-desc":
+          return b.price - a.price;
+        case "area-desc":
+          return b.area - a.area;
+        case "oldest":
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        case "newest":
+        default:
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+    });
 
   const togglePropertyForComparison = (propertyId: string) => {
     setSelectedForComparison(prev => {
@@ -72,8 +90,38 @@ const Properties = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="space-y-8">
+          {/* Header Skeleton */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Building2 className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Property Listings</h1>
+              </div>
+              <p className="text-muted-foreground">
+                Browse and manage all available properties in your portfolio
+              </p>
+            </div>
+          </div>
+
+          {/* Filters Skeleton */}
+          <Card className="p-6 border-border/50 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input disabled placeholder="Loading..." className="pl-10 bg-muted/50 border-border/50" />
+              </div>
+            </div>
+          </Card>
+
+          {/* Properties Grid Skeleton */}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <PropertyCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       </Layout>
     );
@@ -157,6 +205,18 @@ const Properties = () => {
                   <SelectItem value="villa">Villa</SelectItem>
                   <SelectItem value="townhouse">Townhouse</SelectItem>
                   <SelectItem value="penthouse">Penthouse</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="area-desc">Largest Area</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex items-center border rounded-lg overflow-hidden bg-muted/50 border-border/50">

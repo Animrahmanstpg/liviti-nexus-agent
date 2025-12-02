@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
+import StatCardSkeleton from "@/components/StatCardSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -86,8 +88,72 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="space-y-8">
+          {/* Hero Skeleton */}
+          <div className="relative overflow-hidden rounded-2xl shadow-xl bg-primary/10">
+            <div className="px-8 py-16 md:py-20 lg:py-24">
+              <Skeleton className="h-4 w-32 mb-4" />
+              <Skeleton className="h-12 w-64 mb-4" />
+              <Skeleton className="h-5 w-96 mb-8" />
+              <div className="flex gap-4">
+                <Skeleton className="h-12 w-40" />
+                <Skeleton className="h-12 w-32" />
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Grid Skeleton */}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))}
+          </div>
+
+          {/* Recent Activity Skeleton */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="border-border/50">
+              <CardHeader>
+                <Skeleton className="h-6 w-40" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 rounded-xl border border-border/50 p-4">
+                    <Skeleton className="h-16 w-16 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <div className="text-right space-y-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-xl border border-border/50 p-4">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-3 w-36" />
+                      </div>
+                    </div>
+                    <div className="text-right space-y-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </Layout>
     );
