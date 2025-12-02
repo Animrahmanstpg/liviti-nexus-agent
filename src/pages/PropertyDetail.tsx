@@ -15,10 +15,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useIsAdmin } from "@/hooks/useUserRole";
+import PropertyDocuments from "@/components/PropertyDocuments";
+import CommissionCalculator from "@/components/CommissionCalculator";
 
 const PropertyDetail = () => {
   const { id } = useParams();
   const [user, setUser] = useState<User | null>(null);
+  const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -431,6 +435,10 @@ const PropertyDetail = () => {
                 </CardContent>
               </Card>
             )}
+
+            {id && <PropertyDocuments propertyId={id} canUpload={isAdmin} />}
+            
+            {user && <CommissionCalculator defaultPrice={property.price} />}
           </div>
         </div>
       </div>

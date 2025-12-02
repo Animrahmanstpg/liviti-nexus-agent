@@ -25,10 +25,11 @@ import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download } from "lucide-react";
 import SubmissionsManager from "@/components/admin/SubmissionsManager";
 import UserManagement from "@/components/admin/UserManagement";
 import AgentAnalytics from "@/components/admin/AgentAnalytics";
+import ExportReports from "@/components/admin/ExportReports";
 
 type Property = {
   id: string;
@@ -200,7 +201,7 @@ const Admin = () => {
         <h1 className="text-4xl font-bold mb-6">Admin Portal</h1>
 
         <Tabs defaultValue="properties" className="w-full">
-          <TabsList className="flex w-full max-w-4xl">
+          <TabsList className="flex w-full max-w-5xl flex-wrap">
             <TabsTrigger value="properties">Properties</TabsTrigger>
             <TabsTrigger value="projects">
               <FolderKanban className="w-4 h-4 mr-2" />
@@ -217,6 +218,10 @@ const Admin = () => {
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
+            </TabsTrigger>
+            <TabsTrigger value="export">
+              <Download className="w-4 h-4 mr-2" />
+              Export
             </TabsTrigger>
             <TabsTrigger value="custom-fields">
               <Settings className="w-4 h-4 mr-2" />
@@ -337,6 +342,10 @@ const Admin = () => {
 
           <TabsContent value="analytics">
             <AgentAnalytics />
+          </TabsContent>
+
+          <TabsContent value="export">
+            <ExportReports />
           </TabsContent>
 
           <TabsContent value="custom-fields">
