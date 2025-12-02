@@ -9,6 +9,7 @@ import { Home, Loader2, Building2, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import PasswordStrength from "@/components/PasswordStrength";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -296,6 +297,7 @@ const Auth = () => {
                       onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                       className="bg-muted/50"
                     />
+                    <PasswordStrength password={signupData.password} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm" className="text-foreground">Confirm Password</Label>

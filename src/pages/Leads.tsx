@@ -14,6 +14,8 @@ import { Search, Plus, Mail, Phone, Calendar, Loader2, Users, ArrowRight, Dollar
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import StatCardSkeleton from "@/components/StatCardSkeleton";
+import TableSkeleton from "@/components/TableSkeleton";
 
 type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";
 
@@ -112,8 +114,41 @@ const Leads = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Lead Management</h1>
+              </div>
+              <p className="text-muted-foreground">Track and manage all your client leads</p>
+            </div>
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))}
+          </div>
+
+          {/* Filters Skeleton */}
+          <Card className="p-6 border-border/50">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input disabled placeholder="Loading..." className="pl-10 bg-muted/50 border-border/50" />
+              </div>
+            </div>
+          </Card>
+
+          {/* Table Skeleton */}
+          <Card className="border-border/50 overflow-hidden">
+            <TableSkeleton columns={6} rows={5} />
+          </Card>
         </div>
       </Layout>
     );
