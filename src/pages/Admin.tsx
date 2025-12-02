@@ -25,8 +25,10 @@ import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3 } from "lucide-react";
 import SubmissionsManager from "@/components/admin/SubmissionsManager";
+import UserManagement from "@/components/admin/UserManagement";
+import AgentAnalytics from "@/components/admin/AgentAnalytics";
 
 type Property = {
   id: string;
@@ -198,7 +200,7 @@ const Admin = () => {
         <h1 className="text-4xl font-bold mb-6">Admin Portal</h1>
 
         <Tabs defaultValue="properties" className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-4">
+          <TabsList className="flex w-full max-w-4xl">
             <TabsTrigger value="properties">Properties</TabsTrigger>
             <TabsTrigger value="projects">
               <FolderKanban className="w-4 h-4 mr-2" />
@@ -208,9 +210,17 @@ const Admin = () => {
               <FileText className="w-4 h-4 mr-2" />
               Submissions
             </TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="custom-fields">
               <Settings className="w-4 h-4 mr-2" />
-              Custom Fields
+              Fields
             </TabsTrigger>
           </TabsList>
 
@@ -319,6 +329,14 @@ const Admin = () => {
 
           <TabsContent value="submissions">
             <SubmissionsManager />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AgentAnalytics />
           </TabsContent>
 
           <TabsContent value="custom-fields">

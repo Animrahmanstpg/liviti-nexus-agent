@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";
 
 const Leads = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -265,7 +267,7 @@ const Leads = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/leads/${lead.id}`)}>
                         View
                       </Button>
                     </TableCell>
