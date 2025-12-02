@@ -8,15 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, DollarSign, Loader2, Eye, Clock, CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { FileText, DollarSign, Loader2, Eye, Clock, CheckCircle, XCircle, ArrowRight, FileSearch } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import EOIDetailView from "@/components/EOIDetailView";
 
 const MySubmissions = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [eoiDetailSheet, setEoiDetailSheet] = useState<{ open: boolean; eoiId: string | null }>({
+    open: false,
+    eoiId: null,
+  });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -248,14 +254,21 @@ const MySubmissions = () => {
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">
                           {eoi.review_notes || "—"}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEoiDetailSheet({ open: true, eoiId: eoi.id })}
+                            title="View Full Details"
+                          >
+                            <FileSearch className="w-4 h-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => navigate(`/properties/${eoi.property_id}`)}
                             className="gap-1"
                           >
-                            View
                             <ArrowRight className="w-3.5 h-3.5" />
                           </Button>
                         </TableCell>
@@ -337,6 +350,16 @@ const MySubmissions = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* EOI Detail Sheet */}
+        <Sheet open={eoiDetailSheet.open} onOpenChange={(open) => setEoiDetailSheet({ open, eoiId: open ? eoiDetailSheet.eoiId : null })}>
+          <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+            <SheetHeader className="mb-4">
+              <SheetTitle>EOI Details</SheetTitle>
+            </SheetHeader>
+            {eoiDetailSheet.eoiId && <EOIDetailView eoiId={eoiDetailSheet.eoiId} />}
+          </SheetContent>
+        </Sheet>
       </div>
     </Layout>
   );
