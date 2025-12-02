@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2, Heart, FolderKanban, Share2, Calendar, Home, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2, Heart, FolderKanban, Share2, Calendar, Home, CheckCircle2, Expand } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +18,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useIsAdmin } from "@/hooks/useUserRole";
 import PropertyDocuments from "@/components/PropertyDocuments";
 import CommissionCalculator from "@/components/CommissionCalculator";
+import ImageLightbox from "@/components/ImageLightbox";
 import { motion } from "framer-motion";
 
 const PropertyDetail = () => {
@@ -83,6 +84,10 @@ const PropertyDetail = () => {
   const [eoiNotes, setEoiNotes] = useState("");
   const [offerTerms, setOfferTerms] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  // Gather all property images (main image + any additional from documents)
+  const propertyImages = property ? [property.image].filter(Boolean) as string[] : [];
 
   const { isFavorite, addFavorite, removeFavorite } = useFavorites(user?.id);
   const isFav = property ? isFavorite(property.id) : false;
@@ -300,7 +305,8 @@ const PropertyDetail = () => {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 }}
-              className="relative rounded-2xl overflow-hidden group"
+              className="relative rounded-2xl overflow-hidden group cursor-pointer"
+              onClick={() => setLightboxOpen(true)}
             >
               <div className="aspect-[16/10] w-full overflow-hidden bg-muted">
                 <img
@@ -312,21 +318,35 @@ const PropertyDetail = () => {
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               
+              {/* View fullscreen button */}
+              <button 
+                className="absolute top-4 right-4 p-3 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-black/70 hover:scale-110"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxOpen(true);
+                }}
+              >
+                <Expand className="h-5 w-5" />
+              </button>
+              
               {/* Quick stats overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-                <div className="flex items-center gap-6 text-white">
-                  <div className="flex items-center gap-2">
-                    <Bed className="h-5 w-5" />
-                    <span className="font-semibold">{property.bedrooms} Beds</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6 text-white">
+                    <div className="flex items-center gap-2">
+                      <Bed className="h-5 w-5" />
+                      <span className="font-semibold">{property.bedrooms} Beds</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Bath className="h-5 w-5" />
+                      <span className="font-semibold">{property.bathrooms} Baths</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Maximize className="h-5 w-5" />
+                      <span className="font-semibold">{property.area.toLocaleString()} sqft</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Bath className="h-5 w-5" />
-                    <span className="font-semibold">{property.bathrooms} Baths</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Maximize className="h-5 w-5" />
-                    <span className="font-semibold">{property.area.toLocaleString()} sqft</span>
-                  </div>
+                  <span className="text-white/70 text-sm hidden sm:block">Click to view fullscreen</span>
                 </div>
               </div>
             </motion.div>
@@ -564,6 +584,14 @@ const PropertyDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        images={propertyImages}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        alt={property.title}
+      />
     </Layout>
   );
 };
