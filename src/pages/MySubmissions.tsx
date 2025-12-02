@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, DollarSign, Loader2, Eye, Clock, CheckCircle, XCircle } from "lucide-react";
+import { FileText, DollarSign, Loader2, Eye, Clock, CheckCircle, XCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -67,11 +67,11 @@ const MySubmissions = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+        return <Badge className="bg-warning/10 text-warning gap-1"><Clock className="w-3 h-3" />Pending</Badge>;
       case "approved":
-        return <Badge variant="outline" className="bg-success/10 text-success border-success/20"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+        return <Badge className="bg-success/10 text-success gap-1"><CheckCircle className="w-3 h-3" />Approved</Badge>;
       case "rejected":
-        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive gap-1"><XCircle className="w-3 h-3" />Rejected</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -89,7 +89,7 @@ const MySubmissions = () => {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </Layout>
     );
@@ -98,16 +98,27 @@ const MySubmissions = () => {
   const filteredEOIs = filterByStatus(eoiSubmissions);
   const filteredOffers = filterByStatus(offerSubmissions);
 
+  const pendingCount = (eoiSubmissions?.filter(e => e.status === "pending").length || 0) + 
+                       (offerSubmissions?.filter(o => o.status === "pending").length || 0);
+  const approvedCount = (eoiSubmissions?.filter(e => e.status === "approved").length || 0) + 
+                        (offerSubmissions?.filter(o => o.status === "approved").length || 0);
+
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Submissions</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">My Submissions</h1>
+            </div>
             <p className="text-muted-foreground">Track your EOIs and Sales Offers</p>
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] bg-muted/50 border-border/50">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -119,163 +130,210 @@ const MySubmissions = () => {
           </Select>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total EOIs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{eoiSubmissions?.length || 0}</div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border-border/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total EOIs</p>
+                  <p className="text-3xl font-display font-bold">{eoiSubmissions?.length || 0}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Offers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{offerSubmissions?.length || 0}</div>
+          <Card className="border-border/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Offers</p>
+                  <p className="text-3xl font-display font-bold">{offerSubmissions?.length || 0}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <DollarSign className="h-5 w-5 text-accent" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">
-                {(eoiSubmissions?.filter(e => e.status === "pending").length || 0) + 
-                 (offerSubmissions?.filter(o => o.status === "pending").length || 0)}
+          <Card className="border-border/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Pending</p>
+                  <p className="text-3xl font-display font-bold text-warning">{pendingCount}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-warning/10">
+                  <Clock className="h-5 w-5 text-warning" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Approved</p>
+                  <p className="text-3xl font-display font-bold text-success">{approvedCount}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-success/10">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="eoi" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="eoi" className="gap-2">
+        {/* Tabs */}
+        <Tabs defaultValue="eoi" className="space-y-6">
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="eoi" className="gap-2 data-[state=active]:bg-background">
               <FileText className="w-4 h-4" />
               EOI Submissions ({filteredEOIs.length})
             </TabsTrigger>
-            <TabsTrigger value="offers" className="gap-2">
+            <TabsTrigger value="offers" className="gap-2 data-[state=active]:bg-background">
               <DollarSign className="w-4 h-4" />
               Sales Offers ({filteredOffers.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="eoi">
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
+            <Card className="border-border/50 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="font-semibold">Property</TableHead>
+                    <TableHead className="font-semibold">Lead</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Submitted</TableHead>
+                    <TableHead className="font-semibold">Review Notes</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEOIs.length === 0 ? (
                     <TableRow>
-                      <TableHead>Property</TableHead>
-                      <TableHead>Lead</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead>Review Notes</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableCell colSpan={6} className="text-center py-12">
+                        <div className="flex flex-col items-center gap-2">
+                          <FileText className="h-10 w-10 text-muted-foreground/50" />
+                          <p className="text-muted-foreground">No EOI submissions found</p>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEOIs.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No EOI submissions found
+                  ) : (
+                    filteredEOIs.map((eoi: any, index: number) => (
+                      <TableRow 
+                        key={eoi.id}
+                        className="hover:bg-muted/30 transition-colors animate-fade-in"
+                        style={{ animationDelay: `${index * 0.03}s` }}
+                      >
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{eoi.property?.title}</div>
+                            <div className="text-sm text-muted-foreground">{eoi.property?.location}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{eoi.lead?.client_name}</div>
+                            <div className="text-sm text-muted-foreground">{eoi.lead?.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(eoi.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(eoi.created_at), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                          {eoi.review_notes || "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/properties/${eoi.property_id}`)}
+                            className="gap-1"
+                          >
+                            View
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      filteredEOIs.map((eoi: any) => (
-                        <TableRow key={eoi.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{eoi.property?.title}</div>
-                              <div className="text-sm text-muted-foreground">{eoi.property?.location}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{eoi.lead?.client_name}</div>
-                              <div className="text-sm text-muted-foreground">{eoi.lead?.email}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(eoi.status)}</TableCell>
-                          <TableCell>{format(new Date(eoi.created_at), "MMM d, yyyy")}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">
-                            {eoi.review_notes || "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => navigate(`/properties/${eoi.property_id}`)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </Card>
           </TabsContent>
 
           <TabsContent value="offers">
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
+            <Card className="border-border/50 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="font-semibold">Property</TableHead>
+                    <TableHead className="font-semibold">Lead</TableHead>
+                    <TableHead className="font-semibold">Offer Amount</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Submitted</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOffers.length === 0 ? (
                     <TableRow>
-                      <TableHead>Property</TableHead>
-                      <TableHead>Lead</TableHead>
-                      <TableHead>Offer Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableCell colSpan={6} className="text-center py-12">
+                        <div className="flex flex-col items-center gap-2">
+                          <DollarSign className="h-10 w-10 text-muted-foreground/50" />
+                          <p className="text-muted-foreground">No offer submissions found</p>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOffers.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No offer submissions found
+                  ) : (
+                    filteredOffers.map((offer: any, index: number) => (
+                      <TableRow 
+                        key={offer.id}
+                        className="hover:bg-muted/30 transition-colors animate-fade-in"
+                        style={{ animationDelay: `${index * 0.03}s` }}
+                      >
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{offer.property?.title}</div>
+                            <div className="text-sm text-muted-foreground">{offer.property?.location}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{offer.lead?.client_name}</div>
+                            <div className="text-sm text-muted-foreground">{offer.lead?.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-display font-semibold">
+                            ${(Number(offer.offer_amount) / 1000000).toFixed(2)}M
+                          </span>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(offer.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(offer.created_at), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/properties/${offer.property_id}`)}
+                            className="gap-1"
+                          >
+                            View
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      filteredOffers.map((offer: any) => (
-                        <TableRow key={offer.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{offer.property?.title}</div>
-                              <div className="text-sm text-muted-foreground">{offer.property?.location}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{offer.lead?.client_name}</div>
-                              <div className="text-sm text-muted-foreground">{offer.lead?.email}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            ${(Number(offer.offer_amount) / 1000000).toFixed(2)}M
-                          </TableCell>
-                          <TableCell>{getStatusBadge(offer.status)}</TableCell>
-                          <TableCell>{format(new Date(offer.created_at), "MMM d, yyyy")}</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => navigate(`/properties/${offer.property_id}`)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </Card>
           </TabsContent>
         </Tabs>
