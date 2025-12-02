@@ -72,7 +72,7 @@ const PropertyGallery = ({ images, title, stats }: PropertyGalleryProps) => {
                 <div className="flex items-center gap-6 text-white">
                   <span className="font-semibold">{stats.bedrooms} Beds</span>
                   <span className="font-semibold">{stats.bathrooms} Baths</span>
-                  <span className="font-semibold">{stats.area.toLocaleString()} sqft</span>
+                  <span className="font-semibold">{stats.area.toLocaleString()} m²</span>
                 </div>
                 <span className="text-white/70 text-sm hidden sm:block">Click to view fullscreen</span>
               </div>
@@ -160,7 +160,7 @@ const PropertyGallery = ({ images, title, stats }: PropertyGalleryProps) => {
                 <div className="flex items-center gap-6 text-white">
                   <span className="font-semibold">{stats.bedrooms} Beds</span>
                   <span className="font-semibold">{stats.bathrooms} Baths</span>
-                  <span className="font-semibold">{stats.area.toLocaleString()} sqft</span>
+                  <span className="font-semibold">{stats.area.toLocaleString()} m²</span>
                 </div>
                 <span className="text-white/70 text-sm hidden sm:block">Click to view fullscreen</span>
               </div>

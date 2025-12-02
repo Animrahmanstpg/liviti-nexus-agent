@@ -53,7 +53,7 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
     }
   };
 
-  const pricePerSqft = Math.round(property.price / property.area);
+  const pricePerSqm = Math.round(property.price / property.area);
 
   return (
     <Link to={`/properties/${property.id}`}>
@@ -134,7 +134,7 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Maximize className="h-4 w-4" />
               <span className="font-medium text-foreground">{property.area.toLocaleString()}</span>
-              <span className="hidden sm:inline">sqft</span>
+              <span className="hidden sm:inline">m²</span>
             </div>
           </div>
 
@@ -142,10 +142,10 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
           <div className="flex items-end justify-between pt-3 border-t border-border">
             <div>
               <div className="text-2xl font-display font-bold text-primary">
-                ${(property.price / 1000000).toFixed(2)}M
+                ${property.price.toLocaleString()}
               </div>
               <div className="text-xs text-muted-foreground">
-                ${pricePerSqft.toLocaleString()}/sqft
+                ${pricePerSqm.toLocaleString()}/m²
               </div>
             </div>
             <Badge variant="outline" className="font-medium capitalize">
