@@ -15,6 +15,7 @@ import Admin from "./pages/Admin";
 import Analytics from "./pages/Analytics";
 import BulkImportPage from "./pages/BulkImportPage";
 import MySubmissions from "./pages/MySubmissions";
+import LeadDetail from "./pages/LeadDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/properties/:id" element={<PropertyDetail />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/leads" element={<Leads />} />
+          <Route path="/leads/:id" element={<LeadDetail />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/auth" element={<Auth />} />

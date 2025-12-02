@@ -59,7 +59,7 @@ const SubmissionsManager = () => {
   });
 
   const updateEOIMutation = useMutation({
-    mutationFn: async ({ id, status, reviewNotes }: { id: string; status: string; reviewNotes: string }) => {
+    mutationFn: async ({ id, status, reviewNotes, agentId, propertyTitle }: { id: string; status: string; reviewNotes: string; agentId: string; propertyTitle: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("eoi_submissions")
@@ -71,6 +71,15 @@ const SubmissionsManager = () => {
         })
         .eq("id", id);
       if (error) throw error;
+      
+      // Create notification for the agent
+      await supabase.from("notifications").insert({
+        user_id: agentId,
+        title: `EOI ${status === "approved" ? "Approved" : "Rejected"}`,
+        message: `Your EOI for "${propertyTitle}" has been ${status}${reviewNotes ? `: ${reviewNotes}` : ""}`,
+        type: status === "approved" ? "success" : "warning",
+        link: "/my-submissions",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-eoi-submissions"] });
@@ -82,7 +91,7 @@ const SubmissionsManager = () => {
   });
 
   const updateOfferMutation = useMutation({
-    mutationFn: async ({ id, status, reviewNotes }: { id: string; status: string; reviewNotes: string }) => {
+    mutationFn: async ({ id, status, reviewNotes, agentId, propertyTitle }: { id: string; status: string; reviewNotes: string; agentId: string; propertyTitle: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("offer_submissions")
@@ -94,6 +103,15 @@ const SubmissionsManager = () => {
         })
         .eq("id", id);
       if (error) throw error;
+      
+      // Create notification for the agent
+      await supabase.from("notifications").insert({
+        user_id: agentId,
+        title: `Sales Offer ${status === "approved" ? "Approved" : "Rejected"}`,
+        message: `Your offer for "${propertyTitle}" has been ${status}${reviewNotes ? `: ${reviewNotes}` : ""}`,
+        type: status === "approved" ? "success" : "warning",
+        link: "/my-submissions",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-offer-submissions"] });
@@ -125,10 +143,13 @@ const SubmissionsManager = () => {
 
   const handleReview = (action: "approve" | "reject") => {
     const status = action === "approve" ? "approved" : "rejected";
+    const agentId = reviewDialog.item.agent_id;
+    const propertyTitle = reviewDialog.item.property?.title || "Property";
+    
     if (reviewDialog.type === "eoi") {
-      updateEOIMutation.mutate({ id: reviewDialog.item.id, status, reviewNotes });
+      updateEOIMutation.mutate({ id: reviewDialog.item.id, status, reviewNotes, agentId, propertyTitle });
     } else {
-      updateOfferMutation.mutate({ id: reviewDialog.item.id, status, reviewNotes });
+      updateOfferMutation.mutate({ id: reviewDialog.item.id, status, reviewNotes, agentId, propertyTitle });
     }
   };
 

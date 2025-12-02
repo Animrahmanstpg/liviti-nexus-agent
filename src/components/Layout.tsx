@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import NotificationBell from "@/components/NotificationBell";
 
 interface LayoutProps {
   children: ReactNode;
@@ -106,10 +107,13 @@ const Layout = ({ children }: LayoutProps) => {
             )}
           </nav>
 
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            {user && <NotificationBell />}
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
