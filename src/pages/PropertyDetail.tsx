@@ -26,12 +26,23 @@ import { motion } from "framer-motion";
 const PropertyDetail = () => {
   const { id } = useParams();
   const [user, setUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
   const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
+    // Get initial user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      setUserLoading(false);
     });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setUserLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
   
   const { data: property, isLoading: propertyLoading } = useQuery({
@@ -401,7 +412,12 @@ const PropertyDetail = () => {
                           <SheetHeader className="mb-6">
                             <SheetTitle className="text-2xl">Expression of Interest</SheetTitle>
                           </SheetHeader>
-                          {user && (
+                          {userLoading ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                              <p className="text-muted-foreground">Loading...</p>
+                            </div>
+                          ) : user ? (
                             <EOIForm
                               property={{
                                 id: property.id,
@@ -413,6 +429,13 @@ const PropertyDetail = () => {
                               onSuccess={() => setEoiOpen(false)}
                               onCancel={() => setEoiOpen(false)}
                             />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                              <p className="text-muted-foreground mb-4">Please log in to submit an EOI</p>
+                              <Link to="/auth">
+                                <Button>Log In</Button>
+                              </Link>
+                            </div>
                           )}
                         </SheetContent>
                       </Sheet>
