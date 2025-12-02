@@ -116,27 +116,72 @@ const PropertyDetail = () => {
     );
   }
 
-  const handleEOISubmit = () => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleEOISubmit = async () => {
     if (!selectedLead) {
       toast.error("Please select a lead");
       return;
     }
-    toast.success("Expression of Interest submitted successfully!");
-    setEoiOpen(false);
-    setSelectedLead("");
-    setEoiNotes("");
+    if (!user) {
+      toast.error("You must be logged in to submit an EOI");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("eoi_submissions").insert({
+        property_id: id,
+        lead_id: selectedLead,
+        agent_id: user.id,
+        notes: eoiNotes || null,
+      });
+
+      if (error) throw error;
+
+      toast.success("Expression of Interest submitted successfully!");
+      setEoiOpen(false);
+      setSelectedLead("");
+      setEoiNotes("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit EOI");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleOfferSubmit = () => {
+  const handleOfferSubmit = async () => {
     if (!selectedLead || !offerAmount) {
       toast.error("Please fill in all required fields");
       return;
     }
-    toast.success("Sales offer submitted successfully!");
-    setOfferOpen(false);
-    setSelectedLead("");
-    setOfferAmount("");
-    setOfferTerms("");
+    if (!user) {
+      toast.error("You must be logged in to submit an offer");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("offer_submissions").insert({
+        property_id: id,
+        lead_id: selectedLead,
+        agent_id: user.id,
+        offer_amount: parseFloat(offerAmount),
+        terms: offerTerms || null,
+      });
+
+      if (error) throw error;
+
+      toast.success("Sales offer submitted successfully!");
+      setOfferOpen(false);
+      setSelectedLead("");
+      setOfferAmount("");
+      setOfferTerms("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit offer");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -323,8 +368,8 @@ const PropertyDetail = () => {
                             rows={4}
                           />
                         </div>
-                        <Button onClick={handleEOISubmit} className="w-full">
-                          Submit EOI
+                        <Button onClick={handleEOISubmit} className="w-full" disabled={submitting}>
+                          {submitting ? "Submitting..." : "Submit EOI"}
                         </Button>
                       </div>
                     </DialogContent>
@@ -377,8 +422,8 @@ const PropertyDetail = () => {
                             rows={4}
                           />
                         </div>
-                        <Button onClick={handleOfferSubmit} variant="accent" className="w-full">
-                          Submit Offer
+                        <Button onClick={handleOfferSubmit} variant="accent" className="w-full" disabled={submitting}>
+                          {submitting ? "Submitting..." : "Submit Offer"}
                         </Button>
                       </div>
                     </DialogContent>

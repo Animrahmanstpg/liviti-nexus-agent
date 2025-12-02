@@ -25,7 +25,8 @@ import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText } from "lucide-react";
+import SubmissionsManager from "@/components/admin/SubmissionsManager";
 
 type Property = {
   id: string;
@@ -197,11 +198,15 @@ const Admin = () => {
         <h1 className="text-4xl font-bold mb-6">Admin Portal</h1>
 
         <Tabs defaultValue="properties" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-3xl grid-cols-4">
             <TabsTrigger value="properties">Properties</TabsTrigger>
             <TabsTrigger value="projects">
               <FolderKanban className="w-4 h-4 mr-2" />
               Projects
+            </TabsTrigger>
+            <TabsTrigger value="submissions">
+              <FileText className="w-4 h-4 mr-2" />
+              Submissions
             </TabsTrigger>
             <TabsTrigger value="custom-fields">
               <Settings className="w-4 h-4 mr-2" />
@@ -310,6 +315,10 @@ const Admin = () => {
 
           <TabsContent value="projects">
             <ProjectsManager />
+          </TabsContent>
+
+          <TabsContent value="submissions">
+            <SubmissionsManager />
           </TabsContent>
 
           <TabsContent value="custom-fields">
