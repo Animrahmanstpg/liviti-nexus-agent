@@ -81,6 +81,7 @@ const PropertyDetail = () => {
   const [offerAmount, setOfferAmount] = useState("");
   const [eoiNotes, setEoiNotes] = useState("");
   const [offerTerms, setOfferTerms] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const { isFavorite, addFavorite, removeFavorite } = useFavorites(user?.id);
   const isFav = property ? isFavorite(property.id) : false;
@@ -119,8 +120,6 @@ const PropertyDetail = () => {
       </Layout>
     );
   }
-
-  const [submitting, setSubmitting] = useState(false);
 
   const handleEOISubmit = async () => {
     if (!selectedLead) {
