@@ -10,11 +10,48 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { 
   Building2, User as UserIcon, Users, Scale, DollarSign, FileUp, 
-  Loader2, ChevronRight, ChevronLeft, CheckCircle2, Upload, X, Eye
+  Loader2, ChevronRight, ChevronLeft, CheckCircle2, Upload, X, AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { z } from "zod";
+
+// Australian validation schemas
+const australianPostcodeRegex = /^[0-9]{4}$/;
+const australianMobileRegex = /^4[0-9]{8}$/; // Australian mobile without +61 prefix
+const australianPhoneRegex = /^(0[2-9][0-9]{8}|4[0-9]{8}|[0-9]{8,10})$/;
+
+const purchaserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  mobile: z.string().regex(australianMobileRegex, "Enter 9 digits starting with 4 (e.g., 412345678)"),
+  isSmsf: z.boolean(),
+  streetAddress: z.string().min(5, "Enter a valid street address"),
+  suburb: z.string().min(2, "Enter a valid suburb"),
+  postcode: z.string().regex(australianPostcodeRegex, "Enter a 4-digit Australian postcode"),
+  state: z.string().min(2, "Select a state"),
+});
+
+const solicitorSchema = z.object({
+  company: z.string().min(2, "Company name is required"),
+  contactName: z.string().min(2, "Contact name is required"),
+  serviceAddress: z.string().optional(),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().min(8, "Enter a valid phone number"),
+});
+
+const salesSchema = z.object({
+  depositPercent: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0 && num <= 100;
+  }, "Deposit must be between 0 and 100%"),
+  firbStatus: z.string(),
+  holdingDeposit: z.string().optional(),
+  specialCondition: z.string().optional(),
+});
+
+type FieldErrors = { [key: string]: string };
 
 interface Property {
   id: string;
@@ -52,6 +89,7 @@ const STEPS = [
 const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   // Purchaser 1 state
   const [purchaser1, setPurchaser1] = useState({
@@ -100,6 +138,88 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
   const [purchaser1Id, setPurchaser1Id] = useState<File | null>(null);
   const [purchaser2Id, setPurchaser2Id] = useState<File | null>(null);
 
+  // Validation helpers
+  const validatePurchaser = (purchaser: typeof purchaser1, prefix: string): FieldErrors => {
+    const result = purchaserSchema.safeParse(purchaser);
+    if (result.success) return {};
+    const fieldErrors: FieldErrors = {};
+    result.error.errors.forEach((err) => {
+      if (err.path[0]) {
+        fieldErrors[`${prefix}.${err.path[0]}`] = err.message;
+      }
+    });
+    return fieldErrors;
+  };
+
+  const validateSolicitor = (): FieldErrors => {
+    const result = solicitorSchema.safeParse(solicitor);
+    if (result.success) return {};
+    const fieldErrors: FieldErrors = {};
+    result.error.errors.forEach((err) => {
+      if (err.path[0]) {
+        fieldErrors[`solicitor.${err.path[0]}`] = err.message;
+      }
+    });
+    return fieldErrors;
+  };
+
+  const validateSales = (): FieldErrors => {
+    const result = salesSchema.safeParse(salesDetails);
+    if (result.success) return {};
+    const fieldErrors: FieldErrors = {};
+    result.error.errors.forEach((err) => {
+      if (err.path[0]) {
+        fieldErrors[`sales.${err.path[0]}`] = err.message;
+      }
+    });
+    return fieldErrors;
+  };
+
+  const validateStep = (step: number): boolean => {
+    let newErrors: FieldErrors = {};
+    
+    if (step === 2) {
+      newErrors = { ...validatePurchaser(purchaser1, "p1") };
+      if (hasPurchaser2) {
+        newErrors = { ...newErrors, ...validatePurchaser(purchaser2, "p2") };
+      }
+    } else if (step === 3) {
+      newErrors = validateSolicitor();
+    } else if (step === 4) {
+      newErrors = validateSales();
+    } else if (step === 5) {
+      if (!purchaser1Id) {
+        newErrors["docs.purchaser1Id"] = "Purchaser 1 ID is required";
+      }
+      if (hasPurchaser2 && !purchaser2Id) {
+        newErrors["docs.purchaser2Id"] = "Purchaser 2 ID is required";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const clearFieldError = (field: string) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const ErrorMessage = ({ field }: { field: string }) => {
+    if (!errors[field]) return null;
+    return (
+      <p className="text-sm text-destructive flex items-center gap-1 mt-1">
+        <AlertCircle className="h-3 w-3" />
+        {errors[field]}
+      </p>
+    );
+  };
+
   const uploadFile = async (file: File, path: string): Promise<string | null> => {
     const { data, error } = await supabase.storage
       .from("eoi-documents")
@@ -112,29 +232,38 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
-    if (!purchaser1.name || !purchaser1.email || !purchaser1.mobile || 
-        !purchaser1.streetAddress || !purchaser1.suburb || !purchaser1.postcode || !purchaser1.state) {
-      toast.error("Please fill in all required Purchaser 1 fields");
-      setCurrentStep(2);
-      return;
-    }
-
-    if (!solicitor.company || !solicitor.contactName || !solicitor.email || !solicitor.phoneNumber) {
-      toast.error("Please fill in all required Solicitor fields");
-      setCurrentStep(3);
-      return;
-    }
-
+    // Validate all steps
+    const p1Errors = validatePurchaser(purchaser1, "p1");
+    const p2Errors = hasPurchaser2 ? validatePurchaser(purchaser2, "p2") : {};
+    const solicitorErrors = validateSolicitor();
+    const salesErrors = validateSales();
+    const docErrors: FieldErrors = {};
+    
     if (!purchaser1Id) {
-      toast.error("Please upload Purchaser 1 ID");
-      setCurrentStep(5);
-      return;
+      docErrors["docs.purchaser1Id"] = "Purchaser 1 ID is required";
+    }
+    if (hasPurchaser2 && !purchaser2Id) {
+      docErrors["docs.purchaser2Id"] = "Purchaser 2 ID is required";
     }
 
-    if (hasPurchaser2 && !purchaser2Id) {
-      toast.error("Please upload Purchaser 2 ID");
-      setCurrentStep(5);
+    const allErrors = { ...p1Errors, ...p2Errors, ...solicitorErrors, ...salesErrors, ...docErrors };
+    
+    if (Object.keys(allErrors).length > 0) {
+      setErrors(allErrors);
+      // Navigate to first step with errors
+      if (Object.keys(p1Errors).length > 0 || Object.keys(p2Errors).length > 0) {
+        setCurrentStep(2);
+        toast.error("Please fix the errors in Purchaser details");
+      } else if (Object.keys(solicitorErrors).length > 0) {
+        setCurrentStep(3);
+        toast.error("Please fix the errors in Solicitor details");
+      } else if (Object.keys(salesErrors).length > 0) {
+        setCurrentStep(4);
+        toast.error("Please fix the errors in Sales details");
+      } else {
+        setCurrentStep(5);
+        toast.error("Please upload required documents");
+      }
       return;
     }
 
@@ -241,19 +370,27 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
     }
   };
 
-  const nextStep = () => setCurrentStep((s) => Math.min(s + 1, 5));
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep((s) => Math.min(s + 1, 5));
+    } else {
+      toast.error("Please fix the errors before continuing");
+    }
+  };
   const prevStep = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
   const FileUploadField = ({ 
     label, 
     file, 
     setFile, 
-    required = false 
+    required = false,
+    errorKey
   }: { 
     label: string; 
     file: File | null; 
     setFile: (f: File | null) => void;
     required?: boolean;
+    errorKey?: string;
   }) => (
     <div className="space-y-2">
       <Label className="flex items-center gap-1">
@@ -269,7 +406,10 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
           </Button>
         </div>
       ) : (
-        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+        <label className={cn(
+          "flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+          errorKey && errors[errorKey] ? "border-destructive" : "border-border"
+        )}>
           <div className="flex flex-col items-center gap-1">
             <Upload className="h-6 w-6 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Click to upload</span>
@@ -278,10 +418,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
             type="file"
             className="hidden"
             accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            onChange={(e) => {
+              setFile(e.target.files?.[0] || null);
+              if (errorKey) clearFieldError(errorKey);
+            }}
           />
         </label>
       )}
+      {errorKey && <ErrorMessage field={errorKey} />}
     </div>
   );
 
@@ -289,7 +433,9 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
     purchaser: typeof purchaser1,
     setPurchaser: typeof setPurchaser1,
     number: number
-  ) => (
+  ) => {
+    const prefix = `p${number}`;
+    return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -299,9 +445,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
           <Input
             id={`p${number}-name`}
             value={purchaser.name}
-            onChange={(e) => setPurchaser({ ...purchaser, name: e.target.value })}
+            onChange={(e) => {
+              setPurchaser({ ...purchaser, name: e.target.value });
+              clearFieldError(`${prefix}.name`);
+            }}
             placeholder="Enter full legal name"
+            className={errors[`${prefix}.name`] ? "border-destructive" : ""}
           />
+          <ErrorMessage field={`${prefix}.name`} />
         </div>
         <div className="space-y-2">
           <Label htmlFor={`p${number}-email`}>
@@ -311,9 +462,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
             id={`p${number}-email`}
             type="email"
             value={purchaser.email}
-            onChange={(e) => setPurchaser({ ...purchaser, email: e.target.value })}
+            onChange={(e) => {
+              setPurchaser({ ...purchaser, email: e.target.value });
+              clearFieldError(`${prefix}.email`);
+            }}
             placeholder="email@example.com"
+            className={errors[`${prefix}.email`] ? "border-destructive" : ""}
           />
+          <ErrorMessage field={`${prefix}.email`} />
         </div>
       </div>
 
@@ -329,11 +485,15 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
             <Input
               id={`p${number}-mobile`}
               value={purchaser.mobile}
-              onChange={(e) => setPurchaser({ ...purchaser, mobile: e.target.value })}
+              onChange={(e) => {
+                setPurchaser({ ...purchaser, mobile: e.target.value });
+                clearFieldError(`${prefix}.mobile`);
+              }}
               placeholder="4XX XXX XXX"
-              className="rounded-l-none"
+              className={cn("rounded-l-none", errors[`${prefix}.mobile`] ? "border-destructive" : "")}
             />
           </div>
+          <ErrorMessage field={`${prefix}.mobile`} />
         </div>
         <div className="flex items-end">
           <div className="flex items-center space-x-2 h-10">
@@ -358,9 +518,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
         <Input
           id={`p${number}-street`}
           value={purchaser.streetAddress}
-          onChange={(e) => setPurchaser({ ...purchaser, streetAddress: e.target.value })}
+          onChange={(e) => {
+            setPurchaser({ ...purchaser, streetAddress: e.target.value });
+            clearFieldError(`${prefix}.streetAddress`);
+          }}
           placeholder="123 Example Street"
+          className={errors[`${prefix}.streetAddress`] ? "border-destructive" : ""}
         />
+        <ErrorMessage field={`${prefix}.streetAddress`} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -371,9 +536,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
           <Input
             id={`p${number}-suburb`}
             value={purchaser.suburb}
-            onChange={(e) => setPurchaser({ ...purchaser, suburb: e.target.value })}
+            onChange={(e) => {
+              setPurchaser({ ...purchaser, suburb: e.target.value });
+              clearFieldError(`${prefix}.suburb`);
+            }}
             placeholder="Suburb"
+            className={errors[`${prefix}.suburb`] ? "border-destructive" : ""}
           />
+          <ErrorMessage field={`${prefix}.suburb`} />
         </div>
         <div className="space-y-2">
           <Label htmlFor={`p${number}-postcode`}>
@@ -382,10 +552,15 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
           <Input
             id={`p${number}-postcode`}
             value={purchaser.postcode}
-            onChange={(e) => setPurchaser({ ...purchaser, postcode: e.target.value })}
+            onChange={(e) => {
+              setPurchaser({ ...purchaser, postcode: e.target.value });
+              clearFieldError(`${prefix}.postcode`);
+            }}
             placeholder="2000"
             maxLength={4}
+            className={errors[`${prefix}.postcode`] ? "border-destructive" : ""}
           />
+          <ErrorMessage field={`${prefix}.postcode`} />
         </div>
         <div className="space-y-2">
           <Label htmlFor={`p${number}-state`}>
@@ -393,9 +568,12 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
           </Label>
           <Select
             value={purchaser.state}
-            onValueChange={(value) => setPurchaser({ ...purchaser, state: value })}
+            onValueChange={(value) => {
+              setPurchaser({ ...purchaser, state: value });
+              clearFieldError(`${prefix}.state`);
+            }}
           >
-            <SelectTrigger id={`p${number}-state`}>
+            <SelectTrigger id={`p${number}-state`} className={errors[`${prefix}.state`] ? "border-destructive" : ""}>
               <SelectValue placeholder="Select state" />
             </SelectTrigger>
             <SelectContent>
@@ -406,10 +584,12 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
               ))}
             </SelectContent>
           </Select>
+          <ErrorMessage field={`${prefix}.state`} />
         </div>
       </div>
     </div>
   );
+  };
 
   return (
     <div className="space-y-6">
@@ -539,9 +719,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
                   <Input
                     id="solicitor-company"
                     value={solicitor.company}
-                    onChange={(e) => setSolicitor({ ...solicitor, company: e.target.value })}
+                    onChange={(e) => {
+                      setSolicitor({ ...solicitor, company: e.target.value });
+                      clearFieldError("solicitor.company");
+                    }}
                     placeholder="Law firm name"
+                    className={errors["solicitor.company"] ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="solicitor.company" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="solicitor-contact">
@@ -550,9 +735,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
                   <Input
                     id="solicitor-contact"
                     value={solicitor.contactName}
-                    onChange={(e) => setSolicitor({ ...solicitor, contactName: e.target.value })}
+                    onChange={(e) => {
+                      setSolicitor({ ...solicitor, contactName: e.target.value });
+                      clearFieldError("solicitor.contactName");
+                    }}
                     placeholder="Solicitor name"
+                    className={errors["solicitor.contactName"] ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="solicitor.contactName" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -573,9 +763,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
                     id="solicitor-email"
                     type="email"
                     value={solicitor.email}
-                    onChange={(e) => setSolicitor({ ...solicitor, email: e.target.value })}
+                    onChange={(e) => {
+                      setSolicitor({ ...solicitor, email: e.target.value });
+                      clearFieldError("solicitor.email");
+                    }}
                     placeholder="solicitor@lawfirm.com"
+                    className={errors["solicitor.email"] ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="solicitor.email" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="solicitor-phone">
@@ -584,9 +779,14 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
                   <Input
                     id="solicitor-phone"
                     value={solicitor.phoneNumber}
-                    onChange={(e) => setSolicitor({ ...solicitor, phoneNumber: e.target.value })}
+                    onChange={(e) => {
+                      setSolicitor({ ...solicitor, phoneNumber: e.target.value });
+                      clearFieldError("solicitor.phoneNumber");
+                    }}
                     placeholder="Phone number"
+                    className={errors["solicitor.phoneNumber"] ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="solicitor.phoneNumber" />
                 </div>
               </div>
             </div>
@@ -685,6 +885,7 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
                   file={purchaser1Id}
                   setFile={setPurchaser1Id}
                   required
+                  errorKey="docs.purchaser1Id"
                 />
               </div>
 
@@ -694,6 +895,7 @@ const EOIForm = ({ property, user, onSuccess, onCancel }: EOIFormProps) => {
                   file={purchaser2Id}
                   setFile={setPurchaser2Id}
                   required
+                  errorKey="docs.purchaser2Id"
                 />
               )}
             </div>
