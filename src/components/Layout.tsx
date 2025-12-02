@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, LayoutDashboard, Users, Home, LogOut, Shield, Heart } from "lucide-react";
+import { Building2, LayoutDashboard, Users, Home, LogOut, Shield, Heart, FileText } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,10 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/properties", icon: Building2, label: "Properties" },
     { path: "/leads", icon: Users, label: "Leads" },
-    ...(user ? [{ path: "/favorites", icon: Heart, label: "Favorites" }] : []),
+    ...(user ? [
+      { path: "/favorites", icon: Heart, label: "Favorites" },
+      { path: "/my-submissions", icon: FileText, label: "My Submissions" },
+    ] : []),
   ];
 
   const handleLogout = async () => {

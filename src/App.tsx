@@ -14,6 +14,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import Analytics from "./pages/Analytics";
 import BulkImportPage from "./pages/BulkImportPage";
+import MySubmissions from "./pages/MySubmissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/bulk-import" element={<BulkImportPage />} />
+          <Route path="/my-submissions" element={<MySubmissions />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
