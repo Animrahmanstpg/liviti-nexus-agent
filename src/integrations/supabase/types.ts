@@ -100,43 +100,158 @@ export type Database = {
           },
         ]
       }
+      eoi_purchasers: {
+        Row: {
+          created_at: string
+          email: string
+          eoi_id: string
+          id: string
+          is_smsf: boolean
+          mobile: string
+          name: string
+          postcode: string
+          purchaser_number: number
+          state: string
+          street_address: string
+          suburb: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          eoi_id: string
+          id?: string
+          is_smsf?: boolean
+          mobile: string
+          name: string
+          postcode: string
+          purchaser_number: number
+          state: string
+          street_address: string
+          suburb: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          eoi_id?: string
+          id?: string
+          is_smsf?: boolean
+          mobile?: string
+          name?: string
+          postcode?: string
+          purchaser_number?: number
+          state?: string
+          street_address?: string
+          suburb?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eoi_purchasers_eoi_id_fkey"
+            columns: ["eoi_id"]
+            isOneToOne: false
+            referencedRelation: "eoi_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eoi_solicitors: {
+        Row: {
+          company: string
+          contact_name: string
+          created_at: string
+          email: string
+          eoi_id: string
+          id: string
+          phone_number: string
+          service_address: string | null
+        }
+        Insert: {
+          company: string
+          contact_name: string
+          created_at?: string
+          email: string
+          eoi_id: string
+          id?: string
+          phone_number: string
+          service_address?: string | null
+        }
+        Update: {
+          company?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          eoi_id?: string
+          id?: string
+          phone_number?: string
+          service_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eoi_solicitors_eoi_id_fkey"
+            columns: ["eoi_id"]
+            isOneToOne: false
+            referencedRelation: "eoi_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eoi_submissions: {
         Row: {
           agent_id: string
           created_at: string
+          deposit_percent: number | null
+          firb_status: string | null
+          holding_deposit: number | null
+          holding_deposit_receipt_path: string | null
           id: string
-          lead_id: string
+          lead_id: string | null
           notes: string | null
           property_id: string
+          purchaser_1_id_path: string | null
+          purchaser_2_id_path: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          special_condition: string | null
           status: string
           updated_at: string
         }
         Insert: {
           agent_id: string
           created_at?: string
+          deposit_percent?: number | null
+          firb_status?: string | null
+          holding_deposit?: number | null
+          holding_deposit_receipt_path?: string | null
           id?: string
-          lead_id: string
+          lead_id?: string | null
           notes?: string | null
           property_id: string
+          purchaser_1_id_path?: string | null
+          purchaser_2_id_path?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          special_condition?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           agent_id?: string
           created_at?: string
+          deposit_percent?: number | null
+          firb_status?: string | null
+          holding_deposit?: number | null
+          holding_deposit_receipt_path?: string | null
           id?: string
-          lead_id?: string
+          lead_id?: string | null
           notes?: string | null
           property_id?: string
+          purchaser_1_id_path?: string | null
+          purchaser_2_id_path?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          special_condition?: string | null
           status?: string
           updated_at?: string
         }

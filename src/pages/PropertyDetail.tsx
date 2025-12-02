@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,7 @@ import { useIsAdmin } from "@/hooks/useUserRole";
 import PropertyDocuments from "@/components/PropertyDocuments";
 import CommissionCalculator from "@/components/CommissionCalculator";
 import PropertyGallery from "@/components/PropertyGallery";
+import EOIForm from "@/components/EOIForm";
 import { motion } from "framer-motion";
 
 const PropertyDetail = () => {
@@ -81,7 +83,6 @@ const PropertyDetail = () => {
   const [offerOpen, setOfferOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState("");
   const [offerAmount, setOfferAmount] = useState("");
-  const [eoiNotes, setEoiNotes] = useState("");
   const [offerTerms, setOfferTerms] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -144,38 +145,6 @@ const PropertyDetail = () => {
       </Layout>
     );
   }
-
-  const handleEOISubmit = async () => {
-    if (!selectedLead) {
-      toast.error("Please select a lead");
-      return;
-    }
-    if (!user) {
-      toast.error("You must be logged in to submit an EOI");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.from("eoi_submissions").insert({
-        property_id: id,
-        lead_id: selectedLead,
-        agent_id: user.id,
-        notes: eoiNotes || null,
-      });
-
-      if (error) throw error;
-
-      toast.success("Expression of Interest submitted successfully!");
-      setEoiOpen(false);
-      setSelectedLead("");
-      setEoiNotes("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit EOI");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleOfferSubmit = async () => {
     if (!selectedLead || !offerAmount) {
@@ -421,56 +390,32 @@ const PropertyDetail = () => {
 
                   {property.status === "available" && (
                     <div className="space-y-3 pt-2">
-                      <Dialog open={eoiOpen} onOpenChange={setEoiOpen}>
-                        <DialogTrigger asChild>
+                      <Sheet open={eoiOpen} onOpenChange={setEoiOpen}>
+                        <SheetTrigger asChild>
                           <Button className="w-full h-12 text-base font-semibold gap-2 shadow-lg shadow-primary/20">
                             <FileText className="h-5 w-5" />
                             Submit EOI
                           </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Submit Expression of Interest</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="lead-select">Select Lead</Label>
-                              <Select value={selectedLead} onValueChange={setSelectedLead}>
-                                <SelectTrigger id="lead-select">
-                                  <SelectValue placeholder="Choose a lead" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {leads?.map((lead) => (
-                                    <SelectItem key={lead.id} value={lead.id}>
-                                      {lead.client_name} - ${(Number(lead.budget) / 1000000).toFixed(1)}M
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="eoi-notes">Notes (Optional)</Label>
-                              <Textarea
-                                id="eoi-notes"
-                                placeholder="Add any additional information..."
-                                value={eoiNotes}
-                                onChange={(e) => setEoiNotes(e.target.value)}
-                                rows={4}
-                              />
-                            </div>
-                            <Button onClick={handleEOISubmit} className="w-full" disabled={submitting}>
-                              {submitting ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Submitting...
-                                </>
-                              ) : (
-                                "Submit EOI"
-                              )}
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+                          <SheetHeader className="mb-6">
+                            <SheetTitle className="text-2xl">Expression of Interest</SheetTitle>
+                          </SheetHeader>
+                          {user && (
+                            <EOIForm
+                              property={{
+                                id: property.id,
+                                title: property.title,
+                                price: property.price,
+                                project: property.project,
+                              }}
+                              user={user}
+                              onSuccess={() => setEoiOpen(false)}
+                              onCancel={() => setEoiOpen(false)}
+                            />
+                          )}
+                        </SheetContent>
+                      </Sheet>
 
                       <Dialog open={offerOpen} onOpenChange={setOfferOpen}>
                         <DialogTrigger asChild>
