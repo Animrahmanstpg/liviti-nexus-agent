@@ -6,14 +6,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileText, DollarSign, Loader2, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
+import { FileText, DollarSign, Loader2, CheckCircle, XCircle, Clock, Eye, FileSearch } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import EOIDetailView from "@/components/EOIDetailView";
 
 const SubmissionsManager = () => {
   const navigate = useNavigate();
@@ -25,6 +27,10 @@ const SubmissionsManager = () => {
     item: null,
   });
   const [reviewNotes, setReviewNotes] = useState("");
+  const [eoiDetailSheet, setEoiDetailSheet] = useState<{ open: boolean; eoiId: string | null }>({
+    open: false,
+    eoiId: null,
+  });
 
   const { data: eoiSubmissions, isLoading: eoiLoading } = useQuery({
     queryKey: ["admin-eoi-submissions"],
@@ -266,6 +272,14 @@ const SubmissionsManager = () => {
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={() => setEoiDetailSheet({ open: true, eoiId: eoi.id })}
+                            title="View Full Details"
+                          >
+                            <FileSearch className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => navigate(`/properties/${eoi.property_id}`)}
                           >
                             <Eye className="w-4 h-4" />
@@ -432,6 +446,16 @@ const SubmissionsManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* EOI Detail Sheet */}
+      <Sheet open={eoiDetailSheet.open} onOpenChange={(open) => setEoiDetailSheet({ open, eoiId: open ? eoiDetailSheet.eoiId : null })}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>EOI Details</SheetTitle>
+          </SheetHeader>
+          {eoiDetailSheet.eoiId && <EOIDetailView eoiId={eoiDetailSheet.eoiId} />}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
