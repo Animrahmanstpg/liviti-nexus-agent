@@ -70,6 +70,7 @@ interface PropertyFormProps {
     bathrooms?: number;
     area?: number;
     image?: string;
+    images?: string[];
     description?: string;
     features?: string[];
     custom_fields_data?: Record<string, any>;
@@ -84,6 +85,7 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(initialData?.image || "");
+  const [additionalImages, setAdditionalImages] = useState<string[]>(initialData?.images || []);
   
   // Fetch custom fields and groups
   const { data: customFields = [] } = useQuery({
@@ -143,40 +145,46 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
     },
   });
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, isAdditional = false) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Invalid file type",
+            description: "Please upload image files only",
+            variant: "destructive",
+          });
+          continue;
+        }
 
-      const { error: uploadError } = await supabase.storage
-        .from('property-images')
-        .upload(filePath, file);
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('property-images')
+          .upload(filePath, file);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('property-images')
-        .getPublicUrl(filePath);
+        if (uploadError) throw uploadError;
 
-      setUploadedImageUrl(publicUrl);
-      form.setValue('image', publicUrl);
+        const { data: { publicUrl } } = supabase.storage
+          .from('property-images')
+          .getPublicUrl(filePath);
+
+        if (isAdditional) {
+          setAdditionalImages(prev => [...prev, publicUrl]);
+        } else {
+          setUploadedImageUrl(publicUrl);
+          form.setValue('image', publicUrl);
+        }
+      }
       
       toast({
-        title: "Image uploaded successfully",
+        title: isAdditional ? "Images uploaded successfully" : "Image uploaded successfully",
       });
     } catch (error: any) {
       toast({
@@ -187,6 +195,10 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (values: PropertyFormValues) => {
@@ -209,6 +221,7 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
     await onSubmit({ 
       ...values, 
       features,
+      images: additionalImages,
       custom_fields_data: customFieldsData,
       project_id,
     });
@@ -414,14 +427,14 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
           name="image"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Property Image</FormLabel>
+              <FormLabel>Main Property Image</FormLabel>
               <FormControl>
                 <div className="space-y-4">
                   <div className="flex gap-2">
                     <Input
                       type="file"
                       accept="image/*"
-                      onChange={handleImageUpload}
+                      onChange={(e) => handleImageUpload(e, false)}
                       disabled={isUploading}
                       className="cursor-pointer"
                     />
@@ -453,6 +466,63 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
             </FormItem>
           )}
         />
+
+        {/* Additional Gallery Images */}
+        <FormItem>
+          <FormLabel>Additional Gallery Images</FormLabel>
+          <FormDescription>
+            Upload additional images to create a gallery for this property
+          </FormDescription>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleImageUpload(e, true)}
+                disabled={isUploading}
+                className="cursor-pointer"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            {additionalImages.length > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                {additionalImages.map((imageUrl, index) => (
+                  <div key={index} className="relative group aspect-square overflow-hidden rounded-lg border">
+                    <img
+                      src={imageUrl}
+                      alt={`Gallery ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAdditionalImage(index)}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {additionalImages.length === 0 && (
+              <p className="text-sm text-muted-foreground">No additional images uploaded yet</p>
+            )}
+          </div>
+        </FormItem>
 
         <FormField
           control={form.control}

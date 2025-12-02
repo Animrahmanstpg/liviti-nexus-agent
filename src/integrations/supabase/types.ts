@@ -376,6 +376,7 @@ export type Database = {
           features: Json | null
           id: string
           image: string | null
+          images: string[] | null
           location: string
           price: number
           project_id: string | null
@@ -394,6 +395,7 @@ export type Database = {
           features?: Json | null
           id?: string
           image?: string | null
+          images?: string[] | null
           location: string
           price: number
           project_id?: string | null
@@ -412,6 +414,7 @@ export type Database = {
           features?: Json | null
           id?: string
           image?: string | null
+          images?: string[] | null
           location?: string
           price?: number
           project_id?: string | null
