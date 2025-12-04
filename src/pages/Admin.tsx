@@ -20,12 +20,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PropertyForm } from "@/components/admin/PropertyForm";
 import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download, ChevronDown } from "lucide-react";
 import SubmissionsManager from "@/components/admin/SubmissionsManager";
 import UserManagement from "@/components/admin/UserManagement";
 import AgentAnalytics from "@/components/admin/AgentAnalytics";
@@ -53,6 +60,7 @@ const Admin = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const checkAuthAndRole = async () => {
@@ -167,6 +175,52 @@ const Admin = () => {
     },
   });
 
+  const bulkStatusMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
+      const { error } = await supabase
+        .from("properties")
+        .update({ status })
+        .in("id", ids);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+      toast({ title: `${selectedIds.length} properties updated successfully` });
+      setSelectedIds([]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update properties",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("properties")
+        .delete()
+        .in("id", ids);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+      toast({ title: `${selectedIds.length} properties deleted successfully` });
+      setSelectedIds([]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete properties",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = async (data: any) => {
     if (editingProperty) {
       await updateMutation.mutateAsync({ ...data, id: editingProperty.id });
@@ -185,6 +239,34 @@ const Admin = () => {
     setIsDialogOpen(true);
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && properties) {
+      setSelectedIds(properties.map((p: any) => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter((selectedId) => selectedId !== id));
+    }
+  };
+
+  const handleBulkStatusChange = (status: string) => {
+    if (selectedIds.length === 0) return;
+    bulkStatusMutation.mutate({ ids: selectedIds, status });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} properties? This action cannot be undone.`)) {
+      bulkDeleteMutation.mutate(selectedIds);
+    }
+  };
+
   if (roleLoading || isLoading) {
     return (
       <Layout>
@@ -194,6 +276,9 @@ const Admin = () => {
       </Layout>
     );
   }
+
+  const allSelected = properties && properties.length > 0 && selectedIds.length === properties.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < (properties?.length || 0);
 
   return (
     <Layout>
@@ -230,27 +315,76 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="properties" className="space-y-4">
-            <div className="flex justify-end gap-2">
-              <CSVImportWithMapping
-                onImportComplete={() => {
-                  queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-                }}
-              />
-              <Button
-                onClick={() => {
-                  setEditingProperty(null);
-                  setIsDialogOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Property
-              </Button>
+            <div className="flex justify-between items-center gap-2">
+              {/* Bulk Actions */}
+              {selectedIds.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedIds.length} selected
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Change Status
+                        <ChevronDown className="w-4 h-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleBulkStatusChange("available")}>
+                        <span className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                        Available
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkStatusChange("reserved")}>
+                        <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
+                        Reserved
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkStatusChange("sold")}>
+                        <span className="w-2 h-2 rounded-full bg-red-500 mr-2" />
+                        Sold
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              )}
+              
+              <div className="flex gap-2 ml-auto">
+                <CSVImportWithMapping
+                  onImportComplete={() => {
+                    queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    setEditingProperty(null);
+                    setIsDialogOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Property
+                </Button>
+              </div>
             </div>
 
             <div className="bg-card rounded-lg border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                        className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                      />
+                    </TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Project</TableHead>
                     <TableHead>Type</TableHead>
@@ -265,7 +399,14 @@ const Admin = () => {
                 </TableHeader>
                 <TableBody>
                   {properties?.map((property: any) => (
-                    <TableRow key={property.id}>
+                    <TableRow key={property.id} className={selectedIds.includes(property.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.includes(property.id)}
+                          onCheckedChange={(checked) => handleSelectOne(property.id, checked as boolean)}
+                          aria-label={`Select ${property.title}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{property.title}</TableCell>
                       <TableCell>
                         {property.project ? (
@@ -292,7 +433,7 @@ const Admin = () => {
                       <TableCell>{property.location}</TableCell>
                       <TableCell>{property.bedrooms}</TableCell>
                       <TableCell>{property.bathrooms}</TableCell>
-                      <TableCell>{property.area} sqm</TableCell>
+                      <TableCell>{property.area} m²</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button
