@@ -66,6 +66,7 @@ interface FieldGroup {
 const FIELD_TYPES = [
   { value: "text", label: "Text" },
   { value: "number", label: "Number" },
+  { value: "price", label: "Price (e.g., $820,000)" },
   { value: "url", label: "URL" },
   { value: "email", label: "Email" },
   { value: "tel", label: "Phone" },
