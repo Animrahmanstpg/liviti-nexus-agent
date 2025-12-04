@@ -364,7 +364,7 @@ const PropertyDetail = () => {
             )}
 
             {/* Floorplan Button */}
-            {property.custom_fields_data && (property.custom_fields_data as any).floorplan_url && (
+            {property.custom_fields_data && (property.custom_fields_data as any).floorplans && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -378,7 +378,7 @@ const PropertyDetail = () => {
                     <Button
                       variant="outline"
                       className="w-full gap-2"
-                      onClick={() => window.open((property.custom_fields_data as any).floorplan_url, '_blank')}
+                      onClick={() => window.open((property.custom_fields_data as any).floorplans, '_blank')}
                     >
                       <FileImage className="h-5 w-5" />
                       View Floorplan
