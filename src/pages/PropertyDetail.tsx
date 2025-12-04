@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2, Heart, FolderKanban, Share2, Calendar, Home, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Bed, Bath, Maximize, MapPin, FileText, DollarSign, Loader2, Heart, FolderKanban, Share2, Calendar, Home, CheckCircle2, FileImage } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -358,6 +358,31 @@ const PropertyDetail = () => {
                         </motion.div>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Floorplan Button */}
+            {property.custom_fields_data && (property.custom_fields_data as any).floorplan_url && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+              >
+                <Card className="border-0 shadow-lg">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl">Floorplan</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => window.open((property.custom_fields_data as any).floorplan_url, '_blank')}
+                    >
+                      <FileImage className="h-5 w-5" />
+                      View Floorplan
+                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>
