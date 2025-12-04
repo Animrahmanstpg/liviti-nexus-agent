@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, ArrowRight, AlertCircle, CheckCircle2, AlertTriangle, Download } from "lucide-react";
+import { Upload, ArrowRight, AlertCircle, CheckCircle2, AlertTriangle, Download, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Table,
   TableBody,
@@ -73,6 +74,8 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewRow[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [importMode, setImportMode] = useState<"create" | "update">("create");
+  const [matchField, setMatchField] = useState<string>("title");
   const { toast } = useToast();
 
   // Fetch custom fields from database
@@ -522,16 +525,72 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
         return;
       }
 
-      const { error } = await supabase
-        .from("properties")
-        .insert(properties);
+      if (importMode === "update") {
+        // Fetch existing properties to match against
+        const { data: existingProperties, error: fetchError } = await supabase
+          .from("properties")
+          .select("id, title, custom_fields_data");
 
-      if (error) throw error;
+        if (fetchError) throw fetchError;
 
-      toast({
-        title: "Import successful",
-        description: `Imported ${properties.length} properties`,
-      });
+        let updatedCount = 0;
+        let createdCount = 0;
+
+        for (const property of properties) {
+          let matchingProperty = null;
+
+          if (matchField === "title") {
+            matchingProperty = existingProperties?.find(
+              (p: any) => p.title?.toLowerCase() === property.title?.toLowerCase()
+            );
+          } else if (matchField.startsWith("custom_")) {
+            const customFieldName = matchField.replace("custom_", "");
+            const matchValue = property.custom_fields_data?.[customFieldName];
+            if (matchValue) {
+              matchingProperty = existingProperties?.find((p: any) => {
+                const existingValue = p.custom_fields_data?.[customFieldName];
+                return existingValue?.toString().toLowerCase() === matchValue?.toString().toLowerCase();
+              });
+            }
+          }
+
+          if (matchingProperty) {
+            // Update existing property
+            const { error: updateError } = await supabase
+              .from("properties")
+              .update(property)
+              .eq("id", matchingProperty.id);
+
+            if (updateError) throw updateError;
+            updatedCount++;
+          } else {
+            // Create new property
+            const { error: insertError } = await supabase
+              .from("properties")
+              .insert([property]);
+
+            if (insertError) throw insertError;
+            createdCount++;
+          }
+        }
+
+        toast({
+          title: "Import successful",
+          description: `Updated ${updatedCount} properties, created ${createdCount} new properties`,
+        });
+      } else {
+        // Create mode - insert all
+        const { error } = await supabase
+          .from("properties")
+          .insert(properties);
+
+        if (error) throw error;
+
+        toast({
+          title: "Import successful",
+          description: `Imported ${properties.length} properties`,
+        });
+      }
 
       setShowPreviewDialog(false);
       setShowMappingDialog(false);
@@ -540,6 +599,7 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
       setCsvData([]);
       setColumnMapping({});
       setPreviewData([]);
+      setImportMode("create");
       onImportComplete();
     } catch (error: any) {
       console.error("CSV import error:", error);
@@ -617,7 +677,53 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[60vh] pr-4">
+          {/* Import Mode Selection */}
+          <div className="border rounded-lg p-4 space-y-4 mb-4">
+            <Label className="text-sm font-medium">Import Mode</Label>
+            <RadioGroup
+              value={importMode}
+              onValueChange={(value) => setImportMode(value as "create" | "update")}
+              className="flex gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="create" id="create" />
+                <Label htmlFor="create" className="font-normal cursor-pointer">
+                  Create new properties only
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="update" id="update" />
+                <Label htmlFor="update" className="font-normal cursor-pointer flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Update existing (or create new)
+                </Label>
+              </div>
+            </RadioGroup>
+
+            {importMode === "update" && (
+              <div className="space-y-2 pt-2 border-t">
+                <Label className="text-sm">Match properties by:</Label>
+                <Select value={matchField} onValueChange={setMatchField}>
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="title">Property Title</SelectItem>
+                    {customFields.map((field: any) => (
+                      <SelectItem key={field.name} value={`custom_${field.name}`}>
+                        {field.label} (Custom Field)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Properties will be matched and updated based on this field. Non-matching rows will create new properties.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <ScrollArea className="max-h-[50vh] pr-4">
             <div className="space-y-4">
               {csvHeaders.map((header) => (
                 <div key={header} className="flex items-center gap-4 p-3 border rounded-lg">
