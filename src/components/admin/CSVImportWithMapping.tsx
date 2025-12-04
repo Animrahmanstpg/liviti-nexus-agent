@@ -120,10 +120,31 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
     const lines = text.split("\n").filter(line => line.trim());
     if (lines.length === 0) return { headers: [], data: [] };
 
-    const headers = lines[0].split(",").map(h => h.trim());
-    const data = lines.slice(1).map(line => 
-      line.split(",").map(v => v.trim())
-    );
+    // Parse CSV properly handling quoted values (e.g., "$1,449,000")
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim().replace(/^"|"$/g, ''));
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim().replace(/^"|"$/g, ''));
+      
+      return result;
+    };
+
+    const headers = parseCSVLine(lines[0]);
+    const data = lines.slice(1).map(line => parseCSVLine(line));
 
     return { headers, data };
   };
