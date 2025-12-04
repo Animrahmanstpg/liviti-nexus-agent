@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Home } from "lucide-react";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 
 type Project = {
@@ -53,15 +53,34 @@ export const ProjectsManager = () => {
   });
 
   const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects-with-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: projectsData, error: projectsError } = await supabase
         .from("projects")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as Project[];
+      if (projectsError) throw projectsError;
+
+      // Get property counts per project
+      const { data: propertyCounts, error: countsError } = await supabase
+        .from("properties")
+        .select("project_id");
+
+      if (countsError) throw countsError;
+
+      // Count properties per project
+      const countMap: Record<string, number> = {};
+      propertyCounts?.forEach((p) => {
+        if (p.project_id) {
+          countMap[p.project_id] = (countMap[p.project_id] || 0) + 1;
+        }
+      });
+
+      return (projectsData as Project[]).map((project) => ({
+        ...project,
+        propertyCount: countMap[project.id] || 0,
+      }));
     },
   });
 
@@ -71,7 +90,7 @@ export const ProjectsManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects-with-counts"] });
       toast({ title: "Project created successfully" });
       resetForm();
     },
@@ -93,7 +112,7 @@ export const ProjectsManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects-with-counts"] });
       toast({ title: "Project updated successfully" });
       resetForm();
     },
@@ -112,7 +131,7 @@ export const ProjectsManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects-with-counts"] });
       toast({ title: "Project deleted successfully" });
     },
     onError: (error: any) => {
@@ -179,6 +198,7 @@ export const ProjectsManager = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Properties</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Description</TableHead>
@@ -186,9 +206,15 @@ export const ProjectsManager = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects?.map((project) => (
+            {projects?.map((project: any) => (
               <TableRow key={project.id}>
                 <TableCell className="font-medium">{project.name}</TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-1.5 text-sm">
+                    <Home className="w-4 h-4 text-muted-foreground" />
+                    {project.propertyCount}
+                  </span>
+                </TableCell>
                 <TableCell>{project.location || "-"}</TableCell>
                 <TableCell>
                   <span
