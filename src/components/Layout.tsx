@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, LayoutDashboard, Users, Home, LogOut, Shield, Heart, FileText, Menu, ChartBar, User, Settings, ChevronDown } from "lucide-react";
+import { Building2, LayoutDashboard, Users, LogOut, Shield, Heart, FileText, Menu, ChartBar, ChevronDown } from "lucide-react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import NotificationBell from "@/components/NotificationBell";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import stTrinityLogo from "@/assets/st-trinity-logo.webp";
 
 interface LayoutProps {
   children: ReactNode;
@@ -80,13 +81,12 @@ const Layout = ({ children }: LayoutProps) => {
         )}
       >
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/dashboard" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-md transition-transform group-hover:scale-105">
-              <Home className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-display font-semibold tracking-tight text-foreground">
-              Liviti
-            </span>
+          <Link to="/dashboard" className="flex items-center group">
+            <img 
+              src={stTrinityLogo} 
+              alt="ST Trinity" 
+              className="h-8 transition-transform group-hover:scale-105"
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -193,13 +193,14 @@ const Layout = ({ children }: LayoutProps) => {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80">
+               <SheetContent side="right" className="w-80">
                 <SheetHeader>
-                  <SheetTitle className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-primary">
-                      <Home className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                    Liviti
+                  <SheetTitle className="flex items-center">
+                    <img 
+                      src={stTrinityLogo} 
+                      alt="ST Trinity" 
+                      className="h-7"
+                    />
                   </SheetTitle>
                 </SheetHeader>
                 
