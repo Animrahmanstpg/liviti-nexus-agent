@@ -54,11 +54,10 @@ const STANDARD_PROPERTY_FIELDS = [
   { value: "title", label: "Title *", required: true, isCustom: false },
   { value: "type", label: "Type * (apartment/villa/townhouse/penthouse)", required: true, isCustom: false },
   { value: "status", label: "Status * (available/reserved/sold)", required: true, isCustom: false },
-  { value: "price", label: "Price *", required: true, isCustom: false },
   { value: "location", label: "Location *", required: true, isCustom: false },
   { value: "bedrooms", label: "Bedrooms *", required: true, isCustom: false },
   { value: "bathrooms", label: "Bathrooms *", required: true, isCustom: false },
-  { value: "area", label: "Area (sqft) *", required: true, isCustom: false },
+  { value: "area", label: "Area (sqm) *", required: true, isCustom: false },
   { value: "image", label: "Image URL", required: false, isCustom: false },
   { value: "description", label: "Description", required: false, isCustom: false },
   { value: "features", label: "Features (comma or semicolon separated)", required: false, isCustom: false },
@@ -401,7 +400,6 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
 
       // Handle standard fields
       switch (mappedField) {
-        case "price":
         case "bedrooms":
         case "bathrooms":
         case "area":
@@ -450,6 +448,16 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
     // Add custom fields data if any
     if (Object.keys(customFieldsData).length > 0) {
       transformed.custom_fields_data = customFieldsData;
+      
+      // If property_price custom field exists, use it for the main price column
+      if (customFieldsData.property_price !== undefined) {
+        transformed.price = customFieldsData.property_price;
+      }
+    }
+    
+    // Default price to 0 if not set (required by database)
+    if (transformed.price === undefined) {
+      transformed.price = 0;
     }
 
     return transformed;
