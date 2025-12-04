@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import PropertyCard from "@/components/PropertyCard";
-import PropertyCardSkeleton from "@/components/PropertyCardSkeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, SlidersHorizontal, Loader2, ArrowRight, Building2, LayoutGrid, List } from "lucide-react";
+import { Search, ArrowRight, Building2, Bed, Bath, Maximize, MapPin, FolderKanban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -20,7 +19,6 @@ const Properties = () => {
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const { data: properties, isLoading } = useQuery({
     queryKey: ["properties"],
@@ -116,10 +114,20 @@ const Properties = () => {
             </div>
           </Card>
 
-          {/* Properties Grid Skeleton */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Properties List Skeleton */}
+          <div className="flex flex-col gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <PropertyCardSkeleton key={i} />
+              <Card key={i} className="p-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-5 w-5" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-1/3" />
+                    <Skeleton className="h-4 w-1/4" />
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-16" />
+                </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -219,24 +227,6 @@ const Properties = () => {
                   <SelectItem value="area-desc">Largest Area</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="flex items-center border rounded-lg overflow-hidden bg-muted/50 border-border/50">
-                <Button
-                  variant={viewMode === "grid" ? "default" : "ghost"}
-                  size="icon"
-                  className="rounded-none h-10"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
-                  size="icon"
-                  className="rounded-none h-10"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           </div>
         </Card>
@@ -254,28 +244,78 @@ const Properties = () => {
           )}
         </div>
 
-        {/* Properties Grid */}
-        <div className={viewMode === "grid" 
-          ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3" 
-          : "flex flex-col gap-4"
-        }>
-          {filteredProperties.map((property, index) => (
-            <div 
-              key={property.id} 
-              className="relative animate-fade-in"
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              <div className="absolute top-6 left-6 z-10">
-                <Checkbox
-                  checked={selectedForComparison.includes(property.id)}
-                  onCheckedChange={() => togglePropertyForComparison(property.id)}
-                  disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
-                  className="bg-background/90 backdrop-blur-sm border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5 shadow-sm"
-                />
-              </div>
-              <PropertyCard property={property as any} />
-            </div>
-          ))}
+        {/* Properties List */}
+        <div className="flex flex-col gap-3">
+          {filteredProperties.map((property, index) => {
+            const getStatusColor = (status: string) => {
+              switch (status) {
+                case "available":
+                  return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+                case "reserved":
+                  return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+                case "sold":
+                  return "bg-muted text-muted-foreground border-border";
+                default:
+                  return "bg-muted text-muted-foreground border-border";
+              }
+            };
+
+            return (
+              <Link 
+                key={property.id} 
+                to={`/properties/${property.id}`}
+                className="block animate-fade-in"
+                style={{ animationDelay: `${index * 0.03}s` }}
+              >
+                <Card className="p-4 hover:bg-muted/50 transition-colors border-border/50">
+                  <div className="flex items-center gap-4">
+                    <Checkbox
+                      checked={selectedForComparison.includes(property.id)}
+                      onCheckedChange={() => togglePropertyForComparison(property.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
+                      className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate">{property.title}</h3>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {property.location}
+                        </span>
+                        {property.project && (
+                          <span className="flex items-center gap-1">
+                            <FolderKanban className="h-3.5 w-3.5" />
+                            {property.project.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Bed className="h-4 w-4" />
+                        {property.bedrooms}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Bath className="h-4 w-4" />
+                        {property.bathrooms}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Maximize className="h-4 w-4" />
+                        {property.area} m²
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">${property.price.toLocaleString()}</p>
+                    </div>
+                    <Badge className={`${getStatusColor(property.status)} capitalize shrink-0`}>
+                      {property.status}
+                    </Badge>
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {filteredProperties.length === 0 && (

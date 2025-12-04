@@ -455,6 +455,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          image: string | null
           location: string | null
           name: string
           status: string
@@ -464,6 +465,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          image?: string | null
           location?: string | null
           name: string
           status?: string
@@ -473,6 +475,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          image?: string | null
           location?: string | null
           name?: string
           status?: string

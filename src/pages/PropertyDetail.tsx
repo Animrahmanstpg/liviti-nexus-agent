@@ -53,7 +53,7 @@ const PropertyDetail = () => {
         .from("properties")
         .select(`
           *,
-          project:projects(id, name)
+          project:projects(id, name, image)
         `)
         .eq("id", id)
         .maybeSingle();
@@ -98,11 +98,9 @@ const PropertyDetail = () => {
   const [offerTerms, setOfferTerms] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Gather all property images (main image + images array)
-  const propertyImages = property ? [
-    property.image,
-    ...((property as any).images || [])
-  ].filter(Boolean) as string[] : [];
+  // Use project image for the gallery
+  const projectImage = property?.project ? (property.project as any).image : null;
+  const propertyImages = projectImage ? [projectImage] : [];
 
   const { isFavorite, addFavorite, removeFavorite } = useFavorites(user?.id);
   const isFav = property ? isFavorite(property.id) : false;
