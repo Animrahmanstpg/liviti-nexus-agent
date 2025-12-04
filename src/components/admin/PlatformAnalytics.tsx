@@ -1,11 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Clock, Eye, Activity, Globe, FileText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Users, Clock, Eye, Activity, Globe, FileText, Radio } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { format, subDays, startOfDay, differenceInMinutes } from "date-fns";
+import { format, subDays, differenceInMinutes } from "date-fns";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--muted))', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -18,6 +20,50 @@ const formatDuration = (seconds: number): string => {
 };
 
 const PlatformAnalytics = () => {
+  const queryClient = useQueryClient();
+  const [realtimeOnline, setRealtimeOnline] = useState<number>(0);
+
+  // Real-time subscription for online users
+  useEffect(() => {
+    const channel = supabase
+      .channel('user-sessions-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_sessions'
+        },
+        () => {
+          // Refetch sessions when changes occur
+          queryClient.invalidateQueries({ queryKey: ["platform-sessions"] });
+        }
+      )
+      .subscribe();
+
+    // Poll for online count every 30 seconds
+    const updateOnlineCount = async () => {
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      
+      const { count } = await supabase
+        .from("user_sessions")
+        .select("*", { count: "exact", head: true })
+        .gte("last_activity", fiveMinutesAgo.toISOString())
+        .is("session_end", null);
+      
+      setRealtimeOnline(count || 0);
+    };
+
+    updateOnlineCount();
+    const interval = setInterval(updateOnlineCount, 30000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [queryClient]);
+
   // Fetch user sessions for analytics
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: ["platform-sessions"],
@@ -60,10 +106,9 @@ const PlatformAnalytics = () => {
 
   // Calculate overview stats
   const now = new Date();
-  const fiveMinutesAgo = subDays(now, 0);
-  fiveMinutesAgo.setMinutes(now.getMinutes() - 5);
 
-  const onlineNow = sessions?.filter(s => 
+  // Use realtime online count, fallback to calculated
+  const onlineNow = realtimeOnline || sessions?.filter(s => 
     s.last_activity && differenceInMinutes(now, new Date(s.last_activity)) < 5 && !s.session_end
   ).length || 0;
 
@@ -186,15 +231,24 @@ const PlatformAnalytics = () => {
     <div className="space-y-6">
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Online Now</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              Online Now
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1 border-green-500/50 text-green-600">
+                <Radio className="h-2 w-2 animate-pulse" />
+                LIVE
+              </Badge>
+            </CardTitle>
             <Activity className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{onlineNow}</div>
+            <div className="text-2xl font-bold text-green-600">{onlineNow}</div>
             <p className="text-xs text-muted-foreground">Active in last 5 min</p>
           </CardContent>
+          {onlineNow > 0 && (
+            <div className="absolute top-0 right-0 w-2 h-2 m-3 rounded-full bg-green-500 animate-pulse" />
+          )}
         </Card>
 
         <Card>
