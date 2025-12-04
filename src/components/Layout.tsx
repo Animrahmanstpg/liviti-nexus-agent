@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import stTrinityLogo from "@/assets/st-trinity-logo.webp";
+import useActivityTracker from "@/hooks/useActivityTracker";
 
 interface LayoutProps {
   children: ReactNode;
@@ -39,6 +40,9 @@ const Layout = ({ children }: LayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Initialize activity tracking
+  useActivityTracker();
 
   // Fetch site settings
   const { data: siteSettings } = useQuery({

@@ -32,12 +32,13 @@ import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download, ChevronDown, Menu } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download, ChevronDown, Menu, Activity } from "lucide-react";
 import SubmissionsManager from "@/components/admin/SubmissionsManager";
 import UserManagement from "@/components/admin/UserManagement";
 import AgentAnalytics from "@/components/admin/AgentAnalytics";
 import ExportReports from "@/components/admin/ExportReports";
 import NavigationManager from "@/components/admin/NavigationManager";
+import PlatformAnalytics from "@/components/admin/PlatformAnalytics";
 
 type Property = {
   id: string;
@@ -303,7 +304,11 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
-              Analytics
+              Agent Analytics
+            </TabsTrigger>
+            <TabsTrigger value="platform">
+              <Activity className="w-4 h-4 mr-2" />
+              Platform
             </TabsTrigger>
             <TabsTrigger value="export">
               <Download className="w-4 h-4 mr-2" />
@@ -488,6 +493,10 @@ const Admin = () => {
 
           <TabsContent value="analytics">
             <AgentAnalytics />
+          </TabsContent>
+
+          <TabsContent value="platform">
+            <PlatformAnalytics />
           </TabsContent>
 
           <TabsContent value="export">
