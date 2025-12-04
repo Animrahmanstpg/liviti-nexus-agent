@@ -521,12 +521,21 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
   return (
     <>
       <div className="flex items-center gap-4">
-        <a href="/property-import-template.csv" download>
-          <Button variant="outline" type="button">
-            <Download className="w-4 h-4 mr-2" />
-            Download Template
-          </Button>
-        </a>
+        <Button 
+          variant="outline" 
+          type="button"
+          onClick={() => {
+            const link = document.createElement('a');
+            link.href = '/property-import-template.csv';
+            link.download = 'property-import-template.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download Template
+        </Button>
         <Input
           type="file"
           accept=".csv"
