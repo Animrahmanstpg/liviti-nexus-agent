@@ -32,11 +32,12 @@ import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download, ChevronDown, Menu } from "lucide-react";
 import SubmissionsManager from "@/components/admin/SubmissionsManager";
 import UserManagement from "@/components/admin/UserManagement";
 import AgentAnalytics from "@/components/admin/AgentAnalytics";
 import ExportReports from "@/components/admin/ExportReports";
+import NavigationManager from "@/components/admin/NavigationManager";
 
 type Property = {
   id: string;
@@ -312,6 +313,10 @@ const Admin = () => {
               <Settings className="w-4 h-4 mr-2" />
               Fields
             </TabsTrigger>
+            <TabsTrigger value="navigation">
+              <Menu className="w-4 h-4 mr-2" />
+              Navigation
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="properties" className="space-y-4">
@@ -491,6 +496,10 @@ const Admin = () => {
 
           <TabsContent value="custom-fields">
             <CustomFieldsManager />
+          </TabsContent>
+
+          <TabsContent value="navigation">
+            <NavigationManager />
           </TabsContent>
         </Tabs>
 
