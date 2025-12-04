@@ -278,7 +278,10 @@ const Properties = () => {
                   <Checkbox
                     checked={selectedForComparison.includes(property.id)}
                     onCheckedChange={() => togglePropertyForComparison(property.id)}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
                     disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
                     className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
                   />
