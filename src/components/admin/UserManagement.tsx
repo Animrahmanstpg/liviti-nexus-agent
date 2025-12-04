@@ -5,52 +5,71 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, Search, Loader2, UserPlus, Trash2 } from "lucide-react";
+import { Users, Search, Loader2, UserPlus, Trash2, Mail, CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 type AppRole = "admin" | "agent" | "user";
+
+interface UserWithRoles {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+  roles: { id: string; role: string; created_at: string }[];
+}
 
 const UserManagement = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [newRoleUserId, setNewRoleUserId] = useState("");
-  const [newRoleType, setNewRoleType] = useState<AppRole>("agent");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<AppRole>("agent");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: userRoles, isLoading } = useQuery({
-    queryKey: ["admin-user-roles"],
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ["admin-users-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await supabase.functions.invoke("list-users", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (response.error) throw response.error;
+      return response.data as { users: UserWithRoles[] };
     },
   });
 
-  const assignRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase.from("user_roles").insert({
-        user_id: userId,
-        role: role,
+  const inviteUser = useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: AppRole }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await supabase.functions.invoke("invite-user", {
+        body: { email, role },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+
+      if (response.error) throw response.error;
+      if (response.data.error) throw new Error(response.data.error);
+      return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
-      toast({ title: "Role assigned successfully" });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users-list"] });
+      toast({ title: data.message || "User invited successfully" });
       setDialogOpen(false);
-      setNewRoleUserId("");
+      setInviteEmail("");
     },
     onError: (error: any) => {
       toast({ 
-        title: "Failed to assign role", 
+        title: "Failed to invite user", 
         description: error.message,
         variant: "destructive" 
       });
@@ -63,7 +82,7 @@ const UserManagement = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users-list"] });
       toast({ title: "Role revoked successfully" });
     },
     onError: (error: any) => {
@@ -84,17 +103,19 @@ const UserManagement = () => {
     return <Badge variant="outline" className={styles[role] || ""}>{role}</Badge>;
   };
 
-  const filteredRoles = userRoles?.filter((ur) => {
-    const matchesSearch = ur.user_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || ur.role === roleFilter;
+  const users = usersData?.users || [];
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || user.roles.some(r => r.role === roleFilter);
     return matchesSearch && matchesRole;
   });
 
   const roleStats = {
-    total: userRoles?.length || 0,
-    admins: userRoles?.filter((r) => r.role === "admin").length || 0,
-    agents: userRoles?.filter((r) => r.role === "agent").length || 0,
-    users: userRoles?.filter((r) => r.role === "user").length || 0,
+    total: users.length,
+    admins: users.filter((u) => u.roles.some(r => r.role === "admin")).length,
+    agents: users.filter((u) => u.roles.some(r => r.role === "agent")).length,
+    users: users.filter((u) => u.roles.some(r => r.role === "user")).length,
   };
 
   if (isLoading) {
@@ -107,10 +128,10 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Roles</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{roleStats.total}</div>
@@ -147,50 +168,56 @@ const UserManagement = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              User Roles Management
+              User Access Management
             </CardTitle>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Assign Role
+                  Invite User
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Assign New Role</DialogTitle>
+                  <DialogTitle>Invite New User</DialogTitle>
+                  <DialogDescription>
+                    Send an invitation email to add a new user with a specific role.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <div>
-                    <label className="text-sm font-medium">User ID</label>
+                  <div className="space-y-2">
+                    <Label>Email Address</Label>
                     <Input
-                      placeholder="Enter user UUID"
-                      value={newRoleUserId}
-                      onChange={(e) => setNewRoleUserId(e.target.value)}
+                      type="email"
+                      placeholder="user@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Enter the UUID of the user from auth.users
-                    </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Role</label>
-                    <Select value={newRoleType} onValueChange={(v) => setNewRoleType(v as AppRole)}>
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as AppRole)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="agent">Agent</SelectItem>
-                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="admin">Admin - Full system access</SelectItem>
+                        <SelectItem value="agent">Agent - Property sales access</SelectItem>
+                        <SelectItem value="user">User - Basic access</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <Button 
                     className="w-full" 
-                    onClick={() => assignRole.mutate({ userId: newRoleUserId, role: newRoleType })}
-                    disabled={!newRoleUserId.trim()}
+                    onClick={() => inviteUser.mutate({ email: inviteEmail, role: inviteRole })}
+                    disabled={!inviteEmail.trim() || inviteUser.isPending}
                   >
-                    Assign Role
+                    {inviteUser.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="w-4 h-4 mr-2" />
+                    )}
+                    Send Invitation
                   </Button>
                 </div>
               </DialogContent>
@@ -202,7 +229,7 @@ const UserManagement = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by user ID..."
+                placeholder="Search by email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -224,38 +251,68 @@ const UserManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User ID</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Assigned</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Roles</TableHead>
+                <TableHead>Last Sign In</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRoles?.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    No user roles found
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No users found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRoles?.map((userRole) => (
-                  <TableRow key={userRole.id}>
-                    <TableCell className="font-mono text-sm">
-                      {userRole.user_id.slice(0, 8)}...{userRole.user_id.slice(-4)}
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.email}
                     </TableCell>
-                    <TableCell>{getRoleBadge(userRole.role)}</TableCell>
                     <TableCell>
-                      {userRole.created_at ? format(new Date(userRole.created_at), "MMM d, yyyy") : "-"}
+                      {user.email_confirmed_at ? (
+                        <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Pending
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 flex-wrap">
+                        {user.roles.length > 0 ? (
+                          user.roles.map((r) => (
+                            <span key={r.id}>{getRoleBadge(r.role)}</span>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">No roles</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {user.last_sign_in_at 
+                        ? format(new Date(user.last_sign_in_at), "MMM d, yyyy") 
+                        : "Never"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => revokeRole.mutate(userRole.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {user.roles.map((r) => (
+                        <Button
+                          key={r.id}
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => revokeRole.mutate(r.id)}
+                          title={`Revoke ${r.role} role`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      ))}
                     </TableCell>
                   </TableRow>
                 ))

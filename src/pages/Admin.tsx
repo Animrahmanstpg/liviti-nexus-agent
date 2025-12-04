@@ -213,7 +213,7 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="users">
               <Users className="w-4 h-4 mr-2" />
-              Users
+              User Access
             </TabsTrigger>
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
