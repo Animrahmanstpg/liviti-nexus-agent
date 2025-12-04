@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, ArrowRight, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Upload, ArrowRight, AlertCircle, CheckCircle2, AlertTriangle, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -521,6 +521,12 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
   return (
     <>
       <div className="flex items-center gap-4">
+        <a href="/property-import-template.csv" download>
+          <Button variant="outline" type="button">
+            <Download className="w-4 h-4 mr-2" />
+            Download Template
+          </Button>
+        </a>
         <Input
           type="file"
           accept=".csv"
@@ -530,7 +536,7 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
         />
         <Button disabled={isUploading} variant="outline">
           <Upload className="w-4 h-4 mr-2" />
-          Import CSV with Mapping
+          Import CSV
         </Button>
       </div>
 
