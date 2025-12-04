@@ -46,7 +46,7 @@ const propertyFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: z.enum(["apartment", "villa", "townhouse", "penthouse"]),
   status: z.enum(["available", "reserved", "sold"]),
-  price: z.coerce.number().positive("Price must be positive"),
+  price: z.coerce.number().optional(), // Now optional - will be populated from custom property_price
   location: z.string().min(1, "Location is required"),
   bedrooms: z.coerce.number().int().positive(),
   bathrooms: z.coerce.number().int().positive(),
@@ -208,18 +208,30 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
     
     // Extract custom field values
     const customFieldsData: Record<string, any> = {};
+    let priceFromCustomField = 0;
+    
     customFields.forEach(field => {
       const fieldValue = (values as any)[`custom_${field.name}`];
       if (fieldValue !== undefined && fieldValue !== "") {
         customFieldsData[field.name] = fieldValue;
+        // If this is the property_price custom field, use it for the main price
+        if (field.name === 'property_price' && field.field_type === 'price') {
+          priceFromCustomField = typeof fieldValue === 'string' 
+            ? parseFloat(fieldValue.replace(/[$,]/g, '')) || 0 
+            : parseFloat(fieldValue) || 0;
+        }
       }
     });
     
     // Handle project_id - convert "none" to null
     const project_id = values.project_id && values.project_id !== "none" ? values.project_id : null;
     
+    // Use custom property_price for the price field, fallback to form value
+    const finalPrice = priceFromCustomField || values.price || 0;
+    
     await onSubmit({ 
       ...values, 
+      price: finalPrice,
       features,
       images: additionalImages,
       custom_fields_data: customFieldsData,
@@ -344,39 +356,23 @@ export const PropertyForm = ({ initialData, onSubmit, onCancel }: PropertyFormPr
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <FormControl>
-                  <LocationAutocomplete
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Enter property location"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Location</FormLabel>
+              <FormControl>
+                <LocationAutocomplete
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Enter property location"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid grid-cols-3 gap-4">
           <FormField
