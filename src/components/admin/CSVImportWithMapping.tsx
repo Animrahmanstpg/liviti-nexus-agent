@@ -287,13 +287,15 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
         const customFieldName = mappedField.replace("custom_", "");
         const customField = customFields.find(f => f.name === customFieldName);
         
-        if (customField && customField.field_type === "number" && value) {
-          const numValue = parseFloat(value);
+        if (customField && (customField.field_type === "number" || customField.field_type === "price") && value) {
+          // Strip $ and commas for price fields
+          const cleanedValue = value.replace(/[$,]/g, "");
+          const numValue = parseFloat(cleanedValue);
           if (isNaN(numValue)) {
             errors.push({
               row: rowIndex,
               field: mappedField,
-              message: `Invalid ${customField.label}: "${value}" is not a valid number`,
+              message: `Invalid ${customField.label}: "${value}" is not a valid ${customField.field_type === "price" ? "price" : "number"}`,
               severity: "error",
             });
           }
@@ -382,6 +384,10 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
           switch (customField.field_type) {
             case "number":
               customFieldsData[customFieldName] = parseFloat(value) || 0;
+              break;
+            case "price":
+              // Strip $ and commas for price fields
+              customFieldsData[customFieldName] = parseFloat(value.replace(/[$,]/g, "")) || 0;
               break;
             case "checkbox":
               customFieldsData[customFieldName] = value.toLowerCase() === "true" || value === "1";
