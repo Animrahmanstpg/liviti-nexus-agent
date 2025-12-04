@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ArrowRight, Building2, Bed, Bath, Maximize, MapPin, FolderKanban } from "lucide-react";
+import { Search, ArrowRight, Building2, Bed, Bath, Maximize, MapPin, FolderKanban, X, Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -353,6 +353,45 @@ const Properties = () => {
                 Clear Filters
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Floating Comparison Bar */}
+        {selectedForComparison.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+            <Card className="px-4 py-3 shadow-lg border-primary/20 bg-background/95 backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Scale className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">
+                    {selectedForComparison.length} {selectedForComparison.length === 1 ? 'property' : 'properties'} selected
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-border" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedForComparison([])}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+                {selectedForComparison.length >= 2 ? (
+                  <Button size="sm" asChild>
+                    <Link to={`/compare?ids=${selectedForComparison.join(',')}`}>
+                      Compare
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button size="sm" disabled>
+                    Compare
+                    <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
+              </div>
+            </Card>
           </div>
         )}
       </div>
