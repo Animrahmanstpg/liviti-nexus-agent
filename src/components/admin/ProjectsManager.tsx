@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Home } from "lucide-react";
+import { Plus, Pencil, Trash2, Home, Upload, X, ImageIcon } from "lucide-react";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 
 type Project = {
@@ -36,6 +36,7 @@ type Project = {
   description: string | null;
   location: string | null;
   status: string;
+  image: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -45,11 +46,14 @@ export const ProjectsManager = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     location: "",
     status: "active",
+    image: "",
   });
 
   const { data: projects, isLoading } = useQuery({
@@ -144,7 +148,7 @@ export const ProjectsManager = () => {
   });
 
   const resetForm = () => {
-    setFormData({ name: "", description: "", location: "", status: "active" });
+    setFormData({ name: "", description: "", location: "", status: "active", image: "" });
     setEditingProject(null);
     setIsDialogOpen(false);
   };
@@ -156,8 +160,69 @@ export const ProjectsManager = () => {
       description: project.description || "",
       location: project.location || "",
       status: project.status,
+      image: project.image || "",
     });
     setIsDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `project-${Date.now()}.${fileExt}`;
+      const filePath = `projects/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("property-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("property-images")
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, image: publicUrl });
+      toast({ title: "Image uploaded successfully" });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData({ ...formData, image: "" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -197,6 +262,7 @@ export const ProjectsManager = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16">Image</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Properties</TableHead>
               <TableHead>Location</TableHead>
@@ -208,6 +274,19 @@ export const ProjectsManager = () => {
           <TableBody>
             {projects?.map((project: any) => (
               <TableRow key={project.id}>
+                <TableCell>
+                  {project.image ? (
+                    <img
+                      src={project.image}
+                      alt={project.name}
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                      <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="font-medium">{project.name}</TableCell>
                 <TableCell>
                   <span className="inline-flex items-center gap-1.5 text-sm">
@@ -308,6 +387,47 @@ export const ProjectsManager = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Enter project description"
                 rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Project Image</Label>
+              {formData.image ? (
+                <div className="relative inline-block">
+                  <img
+                    src={formData.image}
+                    alt="Project preview"
+                    className="w-full max-w-xs h-40 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute top-2 right-2 h-7 w-7"
+                    onClick={removeImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {uploading ? "Uploading..." : "Click to upload project image"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Max 5MB</p>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+                disabled={uploading}
               />
             </div>
 
