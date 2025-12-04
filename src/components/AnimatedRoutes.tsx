@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import PageTransition from "./PageTransition";
 import Dashboard from "@/pages/Dashboard";
 import Properties from "@/pages/Properties";
+import Projects from "@/pages/Projects";
 import PropertyDetail from "@/pages/PropertyDetail";
 import ProjectDetail from "@/pages/ProjectDetail";
 import Leads from "@/pages/Leads";
@@ -23,8 +24,10 @@ const AnimatedRoutes = () => {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
+        <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
         <Route path="/properties" element={<PageTransition><Properties /></PageTransition>} />
         <Route path="/properties/:id" element={<PageTransition><PropertyDetail /></PageTransition>} />
+        <Route path="/projects" element={<PageTransition><Projects /></PageTransition>} />
         <Route path="/projects/:id" element={<PageTransition><ProjectDetail /></PageTransition>} />
         <Route path="/leads" element={<PageTransition><Leads /></PageTransition>} />
         <Route path="/leads/:id" element={<PageTransition><LeadDetail /></PageTransition>} />

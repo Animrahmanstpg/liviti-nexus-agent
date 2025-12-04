@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ArrowRight, Building2, Bed, Bath, Maximize, MapPin, FolderKanban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -36,15 +35,12 @@ const Properties = () => {
     },
   });
 
-  const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["projects-with-counts"],
+  const { data: projects } = useQuery({
+    queryKey: ["projects"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select(`
-          *,
-          properties:properties(count)
-        `)
+        .select("id, name")
         .order("name");
       if (error) throw error;
       return data;
@@ -110,10 +106,10 @@ const Properties = () => {
                 <div className="p-2 rounded-xl bg-primary/10">
                   <Building2 className="h-6 w-6 text-primary" />
                 </div>
-                <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Property Listings</h1>
+                <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Properties</h1>
               </div>
               <p className="text-muted-foreground">
-                Browse and manage all available properties in your portfolio
+                Browse and manage all available properties
               </p>
             </div>
           </div>
@@ -149,6 +145,19 @@ const Properties = () => {
     );
   }
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "available":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+      case "reserved":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+      case "sold":
+        return "bg-muted text-muted-foreground border-border";
+      default:
+        return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-8">
@@ -159,10 +168,10 @@ const Properties = () => {
               <div className="p-2 rounded-xl bg-primary/10">
                 <Building2 className="h-6 w-6 text-primary" />
               </div>
-              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Inventory</h1>
+              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Properties</h1>
             </div>
             <p className="text-muted-foreground">
-              Browse and manage all available properties and projects
+              Browse and manage all available properties
             </p>
           </div>
           {selectedForComparison.length > 0 && (
@@ -180,277 +189,168 @@ const Properties = () => {
           )}
         </div>
 
-        <Tabs defaultValue="properties" className="space-y-6">
-          <TabsList className="bg-muted/50">
-            <TabsTrigger value="properties">Properties</TabsTrigger>
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-          </TabsList>
+        {/* Filters */}
+        <Card className="p-6 border-border/50 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search properties by name or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-muted/50 border-border/50"
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger className="w-[180px] bg-muted/50 border-border/50">
+                  <SelectValue placeholder="Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Projects</SelectItem>
+                  {projectsWithProperties.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="reserved">Reserved</SelectItem>
+                  <SelectItem value="sold">Sold</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="apartment">Apartment</SelectItem>
+                  <SelectItem value="villa">Villa</SelectItem>
+                  <SelectItem value="townhouse">Townhouse</SelectItem>
+                  <SelectItem value="penthouse">Penthouse</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="area-desc">Largest Area</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
 
-          <TabsContent value="properties" className="space-y-6">
-            {/* Filters */}
-            <Card className="p-6 border-border/50 shadow-sm">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search properties by name or location..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-muted/50 border-border/50"
+        {/* Results Count */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{filteredProperties.length}</span> of{" "}
+            <span className="font-semibold text-foreground">{properties?.length || 0}</span> properties
+          </p>
+          {filteredProperties.length > 1 && (
+            <p className="text-sm text-muted-foreground hidden sm:block">
+              Select up to 3 properties to compare
+            </p>
+          )}
+        </div>
+
+        {/* Properties List */}
+        <div className="flex flex-col gap-3">
+          {filteredProperties.map((property, index) => (
+            <Link 
+              key={property.id} 
+              to={`/properties/${property.id}`}
+              className="block animate-fade-in"
+              style={{ animationDelay: `${index * 0.03}s` }}
+            >
+              <Card className="p-4 hover:bg-muted/50 transition-colors border-border/50">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    checked={selectedForComparison.includes(property.id)}
+                    onCheckedChange={() => togglePropertyForComparison(property.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
+                    className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
                   />
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <Select value={projectFilter} onValueChange={setProjectFilter}>
-                    <SelectTrigger className="w-[180px] bg-muted/50 border-border/50">
-                      <SelectValue placeholder="Project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Projects</SelectItem>
-                      {projectsWithProperties.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="available">Available</SelectItem>
-                      <SelectItem value="reserved">Reserved</SelectItem>
-                      <SelectItem value="sold">Sold</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="apartment">Apartment</SelectItem>
-                      <SelectItem value="villa">Villa</SelectItem>
-                      <SelectItem value="townhouse">Townhouse</SelectItem>
-                      <SelectItem value="penthouse">Penthouse</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                      <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                      <SelectItem value="area-desc">Largest Area</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </Card>
-
-            {/* Results Count */}
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing <span className="font-semibold text-foreground">{filteredProperties.length}</span> of{" "}
-                <span className="font-semibold text-foreground">{properties?.length || 0}</span> properties
-              </p>
-              {filteredProperties.length > 1 && (
-                <p className="text-sm text-muted-foreground hidden sm:block">
-                  Select up to 3 properties to compare
-                </p>
-              )}
-            </div>
-
-            {/* Properties List */}
-            <div className="flex flex-col gap-3">
-              {filteredProperties.map((property, index) => {
-                const getStatusColor = (status: string) => {
-                  switch (status) {
-                    case "available":
-                      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
-                    case "reserved":
-                      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-                    case "sold":
-                      return "bg-muted text-muted-foreground border-border";
-                    default:
-                      return "bg-muted text-muted-foreground border-border";
-                  }
-                };
-
-                return (
-                  <Link 
-                    key={property.id} 
-                    to={`/properties/${property.id}`}
-                    className="block animate-fade-in"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                  >
-                    <Card className="p-4 hover:bg-muted/50 transition-colors border-border/50">
-                      <div className="flex items-center gap-4">
-                        <Checkbox
-                          checked={selectedForComparison.includes(property.id)}
-                          onCheckedChange={() => togglePropertyForComparison(property.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
-                          className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold truncate">{property.title}</h3>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5" />
-                              {property.location}
-                            </span>
-                            {property.project && (
-                              <span className="flex items-center gap-1">
-                                <FolderKanban className="h-3.5 w-3.5" />
-                                {property.project.name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Bed className="h-4 w-4" />
-                            {property.bedrooms}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Bath className="h-4 w-4" />
-                            {property.bathrooms}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Maximize className="h-4 w-4" />
-                            {property.area} m²
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-lg">${property.price.toLocaleString()}</p>
-                        </div>
-                        <Badge className={`${getStatusColor(property.status)} capitalize shrink-0`}>
-                          {property.status}
-                        </Badge>
-                      </div>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-
-            {filteredProperties.length === 0 && (
-              <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
-                <div className="text-center">
-                  <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                    <Building2 className="h-8 w-8 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{property.title}</h3>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {property.location}
+                      </span>
+                      {property.project && (
+                        <span className="flex items-center gap-1">
+                          <FolderKanban className="h-3.5 w-3.5" />
+                          {property.project.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-lg font-display font-semibold text-foreground">No properties found</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Try adjusting your search or filters
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setStatusFilter("all");
-                      setTypeFilter("all");
-                      setProjectFilter("all");
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="projects" className="space-y-6">
-            {/* Projects Count */}
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing <span className="font-semibold text-foreground">{projects?.length || 0}</span> projects
-              </p>
-            </div>
-
-            {/* Projects List */}
-            <div className="flex flex-col gap-3">
-              {projects?.map((project, index) => {
-                const propertyCount = (project.properties as any)?.[0]?.count || 0;
-                const getStatusColor = (status: string) => {
-                  switch (status) {
-                    case "active":
-                      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
-                    case "completed":
-                      return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-                    case "upcoming":
-                      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-                    default:
-                      return "bg-muted text-muted-foreground border-border";
-                  }
-                };
-
-                return (
-                  <Link 
-                    key={project.id} 
-                    to={`/projects/${project.id}`}
-                    className="block animate-fade-in"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                  >
-                    <Card className="p-4 hover:bg-muted/50 transition-colors border-border/50">
-                      <div className="flex items-center gap-4">
-                        {project.image ? (
-                          <img 
-                            src={project.image} 
-                            alt={project.name}
-                            className="h-12 w-12 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
-                            <FolderKanban className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold truncate">{project.name}</h3>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                            {project.location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3.5 w-3.5" />
-                                {project.location}
-                              </span>
-                            )}
-                            <span className="flex items-center gap-1">
-                              <Building2 className="h-3.5 w-3.5" />
-                              {propertyCount} {propertyCount === 1 ? 'property' : 'properties'}
-                            </span>
-                          </div>
-                        </div>
-                        <Badge className={`${getStatusColor(project.status)} capitalize shrink-0`}>
-                          {project.status}
-                        </Badge>
-                      </div>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-
-            {(!projects || projects.length === 0) && (
-              <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
-                <div className="text-center">
-                  <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                    <FolderKanban className="h-8 w-8 text-muted-foreground" />
+                  <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Bed className="h-4 w-4" />
+                      {property.bedrooms}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Bath className="h-4 w-4" />
+                      {property.bathrooms}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Maximize className="h-4 w-4" />
+                      {property.area} m²
+                    </span>
                   </div>
-                  <p className="text-lg font-display font-semibold text-foreground">No projects found</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Projects will appear here once created
-                  </p>
+                  <div className="text-right">
+                    <p className="font-bold text-lg">${property.price.toLocaleString()}</p>
+                  </div>
+                  <Badge className={`${getStatusColor(property.status)} capitalize shrink-0`}>
+                    {property.status}
+                  </Badge>
                 </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+
+        {filteredProperties.length === 0 && (
+          <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-muted-foreground" />
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+              <p className="text-lg font-display font-semibold text-foreground">No properties found</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try adjusting your search or filters
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setTypeFilter("all");
+                  setProjectFilter("all");
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
