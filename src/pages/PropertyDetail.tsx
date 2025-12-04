@@ -21,6 +21,7 @@ import PropertyDocuments from "@/components/PropertyDocuments";
 import CommissionCalculator from "@/components/CommissionCalculator";
 import PropertyGallery from "@/components/PropertyGallery";
 import EOIForm from "@/components/EOIForm";
+import PropertyLocationMap from "@/components/PropertyLocationMap";
 import { motion } from "framer-motion";
 
 const PropertyDetail = () => {
@@ -361,6 +362,15 @@ const PropertyDetail = () => {
                 </Card>
               </motion.div>
             )}
+
+            {/* Location Map */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <PropertyLocationMap location={property.location} title={property.title} />
+            </motion.div>
           </div>
 
           {/* Sidebar - Sticky Price Card */}

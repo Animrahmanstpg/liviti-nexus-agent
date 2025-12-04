@@ -525,12 +525,36 @@ export const CSVImportWithMapping = ({ onImportComplete }: { onImportComplete: (
           variant="outline" 
           type="button"
           onClick={() => {
-            const link = document.createElement('a');
-            link.href = '/property-import-template.csv';
-            link.download = 'property-import-template.csv';
+            // Generate dynamic template with custom fields
+            const standardHeaders = [
+              "title", "type", "status", "price", "location", 
+              "bedrooms", "bathrooms", "area", "image", "description", 
+              "features", "project_name"
+            ];
+            const customFieldHeaders = customFields.map(f => f.name);
+            const allHeaders = [...standardHeaders, ...customFieldHeaders];
+            
+            const exampleRow = [
+              "Example Property", "apartment", "available", "500000", "Sydney NSW",
+              "2", "1", "85", "", "Modern apartment description",
+              "Pool;Gym;Parking", "Project Name",
+              ...customFields.map(() => "")
+            ];
+            
+            const csvContent = [
+              allHeaders.join(","),
+              exampleRow.join(",")
+            ].join("\n");
+            
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "property-import-template.csv";
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(url);
           }}
         >
           <Download className="w-4 h-4 mr-2" />
