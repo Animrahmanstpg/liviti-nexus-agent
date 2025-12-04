@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload } from "lucide-react";
+import { Upload, Download } from "lucide-react";
 
 interface PropertyCSVRow {
   title: string;
@@ -95,6 +95,12 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete: () => void }
 
   return (
     <div className="flex items-center gap-4">
+      <a href="/property-import-template.csv" download>
+        <Button variant="outline" type="button">
+          <Download className="w-4 h-4 mr-2" />
+          Download Template
+        </Button>
+      </a>
       <Input
         type="file"
         accept=".csv"

@@ -1,0 +1,3 @@
+title,type,status,price,location,bedrooms,bathrooms,area,image,description,features
+Example Property 1,apartment,available,500000,Sydney NSW,2,1,85,,Modern apartment in city center,"Pool;Gym;Parking"
+Example Property 2,house,available,850000,Melbourne VIC,3,2,150,,Family home with garden,"Garden;Garage;Air Conditioning"
