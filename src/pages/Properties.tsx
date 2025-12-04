@@ -47,6 +47,16 @@ const Properties = () => {
     },
   });
 
+  // Get project IDs that have at least one property
+  const projectIdsWithProperties = new Set(
+    (properties || []).map((p) => p.project_id).filter(Boolean)
+  );
+
+  // Filter projects to only show those with properties
+  const projectsWithProperties = (projects || []).filter(
+    (project) => projectIdsWithProperties.has(project.id)
+  );
+
   const filteredProperties = (properties || [])
     .filter((property) => {
       const matchesSearch =
@@ -185,7 +195,7 @@ const Properties = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Projects</SelectItem>
-                  {projects?.map((project) => (
+                  {projectsWithProperties.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
                     </SelectItem>
