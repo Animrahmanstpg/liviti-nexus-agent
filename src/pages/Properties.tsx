@@ -275,16 +275,20 @@ const Properties = () => {
             >
               <Card className="p-4 hover:bg-muted/50 transition-colors border-border/50">
                 <div className="flex items-center gap-4">
-                  <Checkbox
-                    checked={selectedForComparison.includes(property.id)}
-                    onCheckedChange={() => togglePropertyForComparison(property.id)}
+                  <div 
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
                     }}
-                    disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
-                    className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
-                  />
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedForComparison.includes(property.id)}
+                      onCheckedChange={() => togglePropertyForComparison(property.id)}
+                      disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
+                      className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{property.title}</h3>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
