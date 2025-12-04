@@ -73,8 +73,6 @@ const Properties = () => {
           return a.price - b.price;
         case "price-desc":
           return b.price - a.price;
-        case "area-desc":
-          return b.area - a.area;
         case "oldest":
           return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
         case "newest":
@@ -247,7 +245,6 @@ const Properties = () => {
                   <SelectItem value="oldest">Oldest First</SelectItem>
                   <SelectItem value="price-asc">Price: Low to High</SelectItem>
                   <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                  <SelectItem value="area-desc">Largest Area</SelectItem>
                 </SelectContent>
               </Select>
             </div>
