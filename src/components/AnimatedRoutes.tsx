@@ -15,6 +15,7 @@ import Admin from "@/pages/Admin";
 import Analytics from "@/pages/Analytics";
 import BulkImportPage from "@/pages/BulkImportPage";
 import MySubmissions from "@/pages/MySubmissions";
+import Advertise from "@/pages/Advertise";
 import NotFound from "@/pages/NotFound";
 
 const AnimatedRoutes = () => {
@@ -38,6 +39,7 @@ const AnimatedRoutes = () => {
         <Route path="/analytics" element={<PageTransition><Analytics /></PageTransition>} />
         <Route path="/bulk-import" element={<PageTransition><BulkImportPage /></PageTransition>} />
         <Route path="/my-submissions" element={<PageTransition><MySubmissions /></PageTransition>} />
+        <Route path="/advertise" element={<PageTransition><Advertise /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>

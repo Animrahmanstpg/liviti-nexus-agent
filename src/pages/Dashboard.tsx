@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import StatCardSkeleton from "@/components/StatCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LeaderboardAd } from "@/components/ads";
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -164,6 +165,9 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="space-y-8">
+        {/* Top Leaderboard Ad */}
+        <LeaderboardAd position="top" className="mb-2" />
+
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-2xl shadow-xl">
           <div className="absolute inset-0">
@@ -313,6 +317,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Bottom Leaderboard Ad */}
+        <LeaderboardAd position="bottom" className="mt-4" />
       </div>
     </Layout>
   );

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ArrowRight, Building2, Bed, Bath, Maximize, MapPin, FolderKanban, X, Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { MrecAd, NativeAd } from "@/components/ads";
 
 const Properties = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -93,6 +94,96 @@ const Properties = () => {
     });
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "available":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+      case "reserved":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+      case "sold":
+        return "bg-muted text-muted-foreground border-border";
+      default:
+        return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
+  // Insert native ads every 5 properties
+  const renderPropertiesWithAds = () => {
+    const items: JSX.Element[] = [];
+    filteredProperties.forEach((property, index) => {
+      // Add native ad every 5 properties (after index 4, 9, 14, etc.)
+      if (index > 0 && index % 5 === 0) {
+        items.push(
+          <NativeAd key={`ad-${index}`} className="animate-fade-in" />
+        );
+      }
+      
+      items.push(
+        <Link 
+          key={property.id} 
+          to={`/properties/${property.id}`}
+          className="block animate-fade-in"
+          style={{ animationDelay: `${index * 0.03}s` }}
+        >
+          <Card className="p-4 hover:bg-muted/50 transition-colors border-border/50">
+            <div className="flex items-center gap-4">
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <Checkbox
+                  checked={selectedForComparison.includes(property.id)}
+                  onCheckedChange={() => togglePropertyForComparison(property.id)}
+                  disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
+                  className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold truncate">{property.title}</h3>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {property.location}
+                  </span>
+                  {property.project && (
+                    <span className="flex items-center gap-1">
+                      <FolderKanban className="h-3.5 w-3.5" />
+                      {property.project.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Bed className="h-4 w-4" />
+                  {property.bedrooms}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Bath className="h-4 w-4" />
+                  {property.bathrooms}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Maximize className="h-4 w-4" />
+                  {property.area} m²
+                </span>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-lg">${property.price.toLocaleString()}</p>
+              </div>
+              <Badge className={`${getStatusColor(property.status)} capitalize shrink-0`}>
+                {property.status}
+              </Badge>
+            </div>
+          </Card>
+        </Link>
+      );
+    });
+    return items;
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -142,19 +233,6 @@ const Properties = () => {
       </Layout>
     );
   }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
-      case "reserved":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-      case "sold":
-        return "bg-muted text-muted-foreground border-border";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
 
   return (
     <Layout>
@@ -264,70 +342,18 @@ const Properties = () => {
           )}
         </div>
 
-        {/* Properties List */}
-        <div className="flex flex-col gap-3">
-          {filteredProperties.map((property, index) => (
-            <Link 
-              key={property.id} 
-              to={`/properties/${property.id}`}
-              className="block animate-fade-in"
-              style={{ animationDelay: `${index * 0.03}s` }}
-            >
-              <Card className="p-4 hover:bg-muted/50 transition-colors border-border/50">
-                <div className="flex items-center gap-4">
-                  <div 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={selectedForComparison.includes(property.id)}
-                      onCheckedChange={() => togglePropertyForComparison(property.id)}
-                      disabled={!selectedForComparison.includes(property.id) && selectedForComparison.length >= 3}
-                      className="border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{property.title}</h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {property.location}
-                      </span>
-                      {property.project && (
-                        <span className="flex items-center gap-1">
-                          <FolderKanban className="h-3.5 w-3.5" />
-                          {property.project.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Bed className="h-4 w-4" />
-                      {property.bedrooms}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Bath className="h-4 w-4" />
-                      {property.bathrooms}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Maximize className="h-4 w-4" />
-                      {property.area} m²
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">${property.price.toLocaleString()}</p>
-                  </div>
-                  <Badge className={`${getStatusColor(property.status)} capitalize shrink-0`}>
-                    {property.status}
-                  </Badge>
-                </div>
-              </Card>
-            </Link>
-          ))}
+        {/* Main Content with Sidebar */}
+        <div className="flex gap-6">
+          {/* Properties List */}
+          <div className="flex-1 flex flex-col gap-3">
+            {renderPropertiesWithAds()}
+          </div>
+
+          {/* Sidebar with MREC Ads */}
+          <div className="hidden lg:block w-[300px] shrink-0 space-y-6">
+            <MrecAd variant="sidebar" />
+            <MrecAd variant="sidebar" />
+          </div>
         </div>
 
         {filteredProperties.length === 0 && (
