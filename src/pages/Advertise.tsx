@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -11,9 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Megaphone, LayoutGrid, DollarSign, Eye, MousePointer, TrendingUp, Plus, CheckCircle, ArrowRight } from "lucide-react";
+import { Megaphone, LayoutGrid, Eye, MousePointer, TrendingUp, Plus, ArrowRight, Upload, CreditCard, Image, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { User } from "@supabase/supabase-js";
 
@@ -40,12 +39,28 @@ interface Campaign {
   status: string;
 }
 
+interface Creative {
+  id: string;
+  campaign_id: string;
+  name: string;
+  image_url: string;
+  click_url: string;
+  headline: string | null;
+  description: string | null;
+  is_active: boolean;
+}
+
 const Advertise = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreativeDialogOpen, setIsCreativeDialogOpen] = useState(false);
   const [selectedPlacement, setSelectedPlacement] = useState<Placement | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     advertiser_name: "",
@@ -54,6 +69,13 @@ const Advertise = () => {
     start_date: format(new Date(), "yyyy-MM-dd"),
     end_date: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"),
     notes: "",
+  });
+  const [creativeData, setCreativeData] = useState({
+    name: "",
+    image_url: "",
+    click_url: "",
+    headline: "",
+    description: "",
   });
 
   useEffect(() => {
@@ -67,6 +89,30 @@ const Advertise = () => {
       }
     });
   }, []);
+
+  // Handle payment success/cancel from URL params
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const canceled = searchParams.get("canceled");
+    const campaignId = searchParams.get("campaign");
+
+    if (success === "true" && campaignId) {
+      toast.success("Payment successful! Your campaign is now pending review.");
+      // Update campaign status to pending
+      supabase
+        .from("ad_campaigns")
+        .update({ status: "pending" })
+        .eq("id", campaignId)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["my-ad-campaigns"] });
+        });
+      // Clear URL params
+      navigate("/advertise", { replace: true });
+    } else if (canceled === "true") {
+      toast.error("Payment was canceled. You can try again later.");
+      navigate("/advertise", { replace: true });
+    }
+  }, [searchParams, navigate, queryClient]);
 
   const { data: placements, isLoading: placementsLoading } = useQuery({
     queryKey: ["public-ad-placements"],
@@ -96,21 +142,60 @@ const Advertise = () => {
     enabled: !!user,
   });
 
+  const { data: myCreatives } = useQuery({
+    queryKey: ["my-ad-creatives", user?.id],
+    queryFn: async () => {
+      if (!user || !myCampaigns?.length) return [];
+      const campaignIds = myCampaigns.map(c => c.id);
+      const { data, error } = await supabase
+        .from("ad_creatives")
+        .select("*")
+        .in("campaign_id", campaignIds);
+      if (error) throw error;
+      return data as Creative[];
+    },
+    enabled: !!user && !!myCampaigns?.length,
+  });
+
   const createCampaignMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       if (!user) throw new Error("Please log in to create a campaign");
       
-      const { error } = await supabase.from("ad_campaigns").insert([{
+      const { data: campaign, error } = await supabase.from("ad_campaigns").insert([{
         ...data,
         advertiser_type: "external",
         status: "draft",
         created_by: user.id,
-      }]);
+      }]).select().single();
       if (error) throw error;
+      return campaign;
     },
-    onSuccess: () => {
+    onSuccess: async (campaign) => {
       queryClient.invalidateQueries({ queryKey: ["my-ad-campaigns"] });
-      toast.success("Campaign created! Our team will review and activate it.");
+      
+      // Initiate payment
+      setIsProcessingPayment(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-ad-payment", {
+          body: {
+            campaignId: campaign.id,
+            amount: formData.budget,
+            placementName: selectedPlacement?.label || "Ad Placement",
+            days: calculateDays(),
+          },
+        });
+
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, "_blank");
+          toast.success("Redirecting to payment...");
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Failed to create payment session");
+      } finally {
+        setIsProcessingPayment(false);
+      }
+
       setIsCreateDialogOpen(false);
       setSelectedPlacement(null);
       setFormData({
@@ -122,6 +207,31 @@ const Advertise = () => {
         end_date: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"),
         notes: "",
       });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const createCreativeMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCampaign || !selectedPlacement) throw new Error("Missing campaign or placement");
+      
+      const { error } = await supabase.from("ad_creatives").insert([{
+        campaign_id: selectedCampaign.id,
+        placement_id: selectedPlacement.id,
+        name: creativeData.name,
+        image_url: creativeData.image_url,
+        click_url: creativeData.click_url,
+        headline: creativeData.headline || null,
+        description: creativeData.description || null,
+        is_active: false, // Pending review
+      }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-ad-creatives"] });
+      toast.success("Creative uploaded! It will be reviewed and activated soon.");
+      setIsCreativeDialogOpen(false);
+      setCreativeData({ name: "", image_url: "", click_url: "", headline: "", description: "" });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -141,12 +251,65 @@ const Advertise = () => {
     setIsCreateDialogOpen(true);
   };
 
+  const handleUploadCreative = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    // Find the placement for this campaign or use first available
+    if (placements?.length) {
+      setSelectedPlacement(placements[0]);
+    }
+    setIsCreativeDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileName = `${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("ad-creatives")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("ad-creatives")
+        .getPublicUrl(fileName);
+
+      setCreativeData(prev => ({ ...prev, image_url: publicUrl }));
+      toast.success("Image uploaded!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (!formData.name || !formData.advertiser_name) {
       toast.error("Please fill in all required fields");
       return;
     }
     createCampaignMutation.mutate(formData);
+  };
+
+  const handleSubmitCreative = () => {
+    if (!creativeData.name || !creativeData.image_url || !creativeData.click_url) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    createCreativeMutation.mutate();
   };
 
   const calculateDays = () => {
@@ -166,9 +329,14 @@ const Advertise = () => {
 
   const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
     draft: "secondary",
+    pending: "outline",
     active: "default",
     paused: "outline",
     completed: "destructive",
+  };
+
+  const getCampaignCreatives = (campaignId: string) => {
+    return myCreatives?.filter(c => c.campaign_id === campaignId) || [];
   };
 
   return (
@@ -254,7 +422,6 @@ const Advertise = () => {
                       {placement.description && (
                         <p className="text-sm text-muted-foreground mb-4">{placement.description}</p>
                       )}
-                      {/* Preview box */}
                       <div 
                         className="border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center bg-muted/50 mb-4"
                         style={{
@@ -289,29 +456,72 @@ const Advertise = () => {
                 <div className="text-center py-8 text-muted-foreground">Loading campaigns...</div>
               ) : myCampaigns && myCampaigns.length > 0 ? (
                 <div className="grid gap-4">
-                  {myCampaigns.map((campaign) => (
-                    <Card key={campaign.id} className="border-border/50">
-                      <CardContent className="py-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-semibold">{campaign.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(campaign.start_date), "MMM d")} - {format(new Date(campaign.end_date), "MMM d, yyyy")}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <p className="font-semibold">${campaign.budget.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">Budget</p>
+                  {myCampaigns.map((campaign) => {
+                    const creatives = getCampaignCreatives(campaign.id);
+                    return (
+                      <Card key={campaign.id} className="border-border/50">
+                        <CardContent className="py-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h3 className="font-semibold">{campaign.name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {format(new Date(campaign.start_date), "MMM d")} - {format(new Date(campaign.end_date), "MMM d, yyyy")}
+                              </p>
                             </div>
-                            <Badge variant={statusColors[campaign.status]}>
-                              {campaign.status}
-                            </Badge>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <p className="font-semibold">${campaign.budget.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">Budget</p>
+                              </div>
+                              <Badge variant={statusColors[campaign.status]}>
+                                {campaign.status}
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          
+                          {/* Creatives Section */}
+                          <div className="border-t pt-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-medium">Ad Creatives</h4>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleUploadCreative(campaign)}
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload Creative
+                              </Button>
+                            </div>
+                            {creatives.length > 0 ? (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {creatives.map((creative) => (
+                                  <div key={creative.id} className="relative group">
+                                    <img 
+                                      src={creative.image_url} 
+                                      alt={creative.name}
+                                      className="w-full h-20 object-cover rounded-lg border"
+                                    />
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                      <span className="text-white text-xs">{creative.name}</span>
+                                    </div>
+                                    {!creative.is_active && (
+                                      <Badge className="absolute top-1 right-1 text-xs" variant="secondary">
+                                        Pending
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                No creatives uploaded yet. Upload your banner images to start advertising.
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : (
                 <Card className="border-dashed">
@@ -416,10 +626,143 @@ const Advertise = () => {
               </Card>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={createCampaignMutation.isPending}>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Submit Campaign
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={createCampaignMutation.isPending || isProcessingPayment}
+              >
+                {createCampaignMutation.isPending || isProcessingPayment ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pay & Create Campaign
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Upload Creative Dialog */}
+        <Dialog open={isCreativeDialogOpen} onOpenChange={setIsCreativeDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Upload Ad Creative</DialogTitle>
+              <DialogDescription>
+                Upload your banner image for {selectedCampaign?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Creative Name *</Label>
+                <Input
+                  value={creativeData.name}
+                  onChange={(e) => setCreativeData({ ...creativeData, name: e.target.value })}
+                  placeholder="Banner v1"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Banner Image *</Label>
+                {creativeData.image_url ? (
+                  <div className="relative">
+                    <img 
+                      src={creativeData.image_url} 
+                      alt="Preview" 
+                      className="w-full h-40 object-contain rounded-lg border bg-muted"
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="absolute top-2 right-2"
+                      onClick={() => setCreativeData({ ...creativeData, image_url: "" })}
+                    >
+                      Change
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      {uploadingImage ? (
+                        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                      ) : (
+                        <>
+                          <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">Click to upload banner image</p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG up to 5MB</p>
+                        </>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                    />
+                  </label>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Click URL *</Label>
+                <Input
+                  type="url"
+                  value={creativeData.click_url}
+                  onChange={(e) => setCreativeData({ ...creativeData, click_url: e.target.value })}
+                  placeholder="https://yourwebsite.com/landing-page"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Headline (for native ads)</Label>
+                <Input
+                  value={creativeData.headline}
+                  onChange={(e) => setCreativeData({ ...creativeData, headline: e.target.value })}
+                  placeholder="Your compelling headline"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description (for native ads)</Label>
+                <Textarea
+                  value={creativeData.description}
+                  onChange={(e) => setCreativeData({ ...creativeData, description: e.target.value })}
+                  placeholder="A brief description of your offer..."
+                />
+              </div>
+
+              {selectedPlacement && (
+                <p className="text-xs text-muted-foreground">
+                  Recommended size: {selectedPlacement.width > 0 ? `${selectedPlacement.width}×${selectedPlacement.height}px` : "Flexible"}
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreativeDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmitCreative} 
+                disabled={createCreativeMutation.isPending || uploadingImage}
+              >
+                {createCreativeMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Creative
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
