@@ -32,13 +32,17 @@ import { CSVImportWithMapping } from "@/components/admin/CSVImportWithMapping";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { ProjectsManager } from "@/components/admin/ProjectsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download, ChevronDown, Menu, Activity } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Settings, FolderKanban, FileText, Users, BarChart3, Download, ChevronDown, Menu, Activity, Megaphone } from "lucide-react";
 import SubmissionsManager from "@/components/admin/SubmissionsManager";
 import UserManagement from "@/components/admin/UserManagement";
 import AgentAnalytics from "@/components/admin/AgentAnalytics";
 import ExportReports from "@/components/admin/ExportReports";
 import NavigationManager from "@/components/admin/NavigationManager";
 import PlatformAnalytics from "@/components/admin/PlatformAnalytics";
+import AdPlacementsManager from "@/components/admin/AdPlacementsManager";
+import AdCampaignsManager from "@/components/admin/AdCampaignsManager";
+import AdCreativesManager from "@/components/admin/AdCreativesManager";
+import AdAnalytics from "@/components/admin/AdAnalytics";
 
 type Property = {
   id: string;
@@ -322,6 +326,10 @@ const Admin = () => {
               <Menu className="w-4 h-4 mr-2" />
               Navigation
             </TabsTrigger>
+            <TabsTrigger value="ads">
+              <Megaphone className="w-4 h-4 mr-2" />
+              Ads
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="properties" className="space-y-4">
@@ -509,6 +517,29 @@ const Admin = () => {
 
           <TabsContent value="navigation">
             <NavigationManager />
+          </TabsContent>
+
+          <TabsContent value="ads" className="space-y-6">
+            <Tabs defaultValue="campaigns" className="w-full">
+              <TabsList>
+                <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+                <TabsTrigger value="creatives">Creatives</TabsTrigger>
+                <TabsTrigger value="placements">Placements</TabsTrigger>
+                <TabsTrigger value="ad-analytics">Analytics</TabsTrigger>
+              </TabsList>
+              <TabsContent value="campaigns" className="mt-4">
+                <AdCampaignsManager />
+              </TabsContent>
+              <TabsContent value="creatives" className="mt-4">
+                <AdCreativesManager />
+              </TabsContent>
+              <TabsContent value="placements" className="mt-4">
+                <AdPlacementsManager />
+              </TabsContent>
+              <TabsContent value="ad-analytics" className="mt-4">
+                <AdAnalytics />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
 
