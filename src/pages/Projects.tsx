@@ -87,16 +87,24 @@ const Projects = () => {
           </p>
         </div>
 
-        {/* Projects Count */}
+        {(() => {
+          const filteredProjects = projects?.filter((project) => {
+            const propertyCount = (project.properties as any)?.[0]?.count || 0;
+            return propertyCount > 0;
+          }) || [];
+
+          return (
+            <>
+              {/* Projects Count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{projects?.length || 0}</span> projects
+            Showing <span className="font-semibold text-foreground">{filteredProjects.length}</span> projects
           </p>
         </div>
 
         {/* Projects List */}
         <div className="flex flex-col gap-3">
-          {projects?.map((project, index) => {
+          {filteredProjects.map((project, index) => {
             const propertyCount = (project.properties as any)?.[0]?.count || 0;
 
             return (
@@ -144,19 +152,22 @@ const Projects = () => {
           })}
         </div>
 
-        {(!projects || projects.length === 0) && (
-          <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
-            <div className="text-center">
-              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                <FolderKanban className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <p className="text-lg font-display font-semibold text-foreground">No projects found</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Projects will appear here once created
-              </p>
-            </div>
-          </div>
-        )}
+              {filteredProjects.length === 0 && (
+                <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
+                  <div className="text-center">
+                    <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                      <FolderKanban className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-lg font-display font-semibold text-foreground">No projects found</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Projects with properties will appear here
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
     </Layout>
   );
