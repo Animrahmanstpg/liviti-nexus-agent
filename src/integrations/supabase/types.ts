@@ -14,6 +14,242 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_campaigns: {
+        Row: {
+          advertiser_email: string | null
+          advertiser_name: string
+          advertiser_type: string
+          budget: number | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string
+          id: string
+          name: string
+          notes: string | null
+          spent: number | null
+          start_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          advertiser_email?: string | null
+          advertiser_name: string
+          advertiser_type?: string
+          budget?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          spent?: number | null
+          start_date: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          advertiser_email?: string | null
+          advertiser_name?: string
+          advertiser_type?: string
+          budget?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          spent?: number | null
+          start_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ad_clicks: {
+        Row: {
+          created_at: string | null
+          creative_id: string
+          id: string
+          impression_id: string | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          creative_id: string
+          id?: string
+          impression_id?: string | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          creative_id?: string
+          id?: string
+          impression_id?: string | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_clicks_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "ad_creatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_clicks_impression_id_fkey"
+            columns: ["impression_id"]
+            isOneToOne: false
+            referencedRelation: "ad_impressions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_creatives: {
+        Row: {
+          alt_text: string | null
+          campaign_id: string
+          click_url: string
+          created_at: string | null
+          description: string | null
+          headline: string | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          name: string
+          placement_id: string
+          priority: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          campaign_id: string
+          click_url: string
+          created_at?: string | null
+          description?: string | null
+          headline?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          name: string
+          placement_id: string
+          priority?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          campaign_id?: string
+          click_url?: string
+          created_at?: string | null
+          description?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          name?: string
+          placement_id?: string
+          priority?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_creatives_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_creatives_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "ad_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_impressions: {
+        Row: {
+          created_at: string | null
+          creative_id: string
+          id: string
+          page_path: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          creative_id: string
+          id?: string
+          page_path?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          creative_id?: string
+          id?: string
+          page_path?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_impressions_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "ad_creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_placements: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          height: number
+          id: string
+          is_active: boolean | null
+          label: string
+          location: string
+          name: string
+          price_per_day: number | null
+          updated_at: string | null
+          width: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          height: number
+          id?: string
+          is_active?: boolean | null
+          label: string
+          location: string
+          name: string
+          price_per_day?: number | null
+          updated_at?: string | null
+          width: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          height?: number
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          location?: string
+          name?: string
+          price_per_day?: number | null
+          updated_at?: string | null
+          width?: number
+        }
+        Relationships: []
+      }
       custom_field_groups: {
         Row: {
           created_at: string | null
