@@ -11,15 +11,32 @@ const Projects = () => {
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects-with-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all projects
+      const { data: projectsData, error: projectsError } = await supabase
         .from("projects")
-        .select(`
-          *,
-          properties:properties(count)
-        `)
+        .select("*")
         .order("name");
-      if (error) throw error;
-      return data;
+      if (projectsError) throw projectsError;
+
+      // Then get property counts per project
+      const { data: countData, error: countError } = await supabase
+        .from("properties")
+        .select("project_id");
+      if (countError) throw countError;
+
+      // Count properties per project
+      const countMap = (countData || []).reduce((acc, prop) => {
+        if (prop.project_id) {
+          acc[prop.project_id] = (acc[prop.project_id] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Merge counts with projects
+      return (projectsData || []).map(project => ({
+        ...project,
+        propertyCount: countMap[project.id] || 0
+      }));
     },
   });
 
@@ -88,10 +105,7 @@ const Projects = () => {
         </div>
 
         {(() => {
-          const filteredProjects = projects?.filter((project) => {
-            const propertyCount = (project.properties as any)?.[0]?.count || 0;
-            return propertyCount > 0;
-          }) || [];
+          const filteredProjects = projects?.filter((project) => project.propertyCount > 0) || [];
 
           return (
             <>
@@ -105,7 +119,7 @@ const Projects = () => {
         {/* Projects List */}
         <div className="flex flex-col gap-3">
           {filteredProjects.map((project, index) => {
-            const propertyCount = (project.properties as any)?.[0]?.count || 0;
+            const propertyCount = project.propertyCount;
 
             return (
               <Link 
