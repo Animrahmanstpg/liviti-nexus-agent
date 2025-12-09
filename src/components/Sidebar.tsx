@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     Building2, LayoutDashboard, Users, Heart, FileText,
@@ -9,6 +10,16 @@ import { cn } from "@/lib/utils";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import stTrinityLogo from "@/assets/st-trinity-logo.webp";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +68,7 @@ const Sidebar = ({
     const location = useLocation();
     const navigate = useNavigate();
     const { toast } = useToast();
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
     const handleLogout = async () => {
         const { error } = await supabase.auth.signOut();
@@ -178,7 +190,7 @@ const Sidebar = ({
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleLogout}
+                        onClick={() => setShowLogoutDialog(true)}
                         className={cn(
                             "w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all",
                             collapsed && !isMobile ? "justify-center px-2" : "justify-start"
@@ -239,6 +251,24 @@ const Sidebar = ({
                     <SidebarContent isMobile />
                 </SheetContent>
             </Sheet>
+
+            {/* Logout Confirmation Dialog */}
+            <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You will be redirected to the login page and will need to sign in again to access your account.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Logout
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 };
