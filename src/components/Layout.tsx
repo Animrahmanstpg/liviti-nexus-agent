@@ -161,6 +161,13 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex items-center gap-3">
             {user && <NotificationBell />}
 
+            {/* Login Button for non-authenticated users */}
+            {!user && (
+              <Button onClick={() => navigate("/auth")} variant="default" size="sm">
+                Login
+              </Button>
+            )}
+
             {/* User Profile Dropdown */}
             {user && (
               <DropdownMenu>
