@@ -1,15 +1,17 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     Building2, LayoutDashboard, Users, Heart, FileText,
     FolderKanban, Shield, ChartBar, ChevronLeft, ChevronRight,
-    LucideIcon, Home, Settings
+    LucideIcon, Home, Settings, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import stTrinityLogo from "@/assets/st-trinity-logo.webp";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
     user: SupabaseUser | null;
@@ -53,6 +55,21 @@ const Sidebar = ({
     logoAlt = "ST Trinity"
 }: SidebarProps) => {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { toast } = useToast();
+
+    const handleLogout = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            toast({
+                title: "Error",
+                description: "Failed to log out",
+                variant: "destructive",
+            });
+        } else {
+            navigate("/auth");
+        }
+    };
 
     const userInitials = user?.user_metadata?.full_name
         ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -142,7 +159,7 @@ const Sidebar = ({
                     collapsed && !isMobile && "px-2"
                 )}>
                     <div className={cn(
-                        "flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer",
+                        "flex items-center gap-3 p-2 rounded-xl",
                         collapsed && !isMobile && "justify-center"
                     )}>
                         <Avatar className="h-9 w-9 shrink-0">
@@ -158,6 +175,23 @@ const Sidebar = ({
                             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         </div>
                     </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleLogout}
+                        className={cn(
+                            "w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all",
+                            collapsed && !isMobile ? "justify-center px-2" : "justify-start"
+                        )}
+                    >
+                        <LogOut className="h-4 w-4 shrink-0" />
+                        <span className={cn(
+                            "ml-2 transition-all duration-300",
+                            collapsed && !isMobile ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+                        )}>
+                            Logout
+                        </span>
+                    </Button>
                 </div>
             )}
 
