@@ -141,6 +141,52 @@ const SubmissionsManager = () => {
     }
   };
 
+  const getStageBadge = (stage: string) => {
+    switch (stage) {
+      case "offer_submitted":
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">Offer Submitted</Badge>;
+      case "offer_accepted":
+        return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Offer Accepted</Badge>;
+      case "exchanged":
+        return <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20">Exchanged</Badge>;
+      case "settled":
+        return <Badge variant="outline" className="bg-green-600/10 text-green-600 border-green-600/20">Settled</Badge>;
+      default:
+        return <Badge variant="outline">{stage}</Badge>;
+    }
+  };
+
+  const updateEOIStageMutation = useMutation({
+    mutationFn: async ({ id, stage, agentId, propertyTitle }: { id: string; stage: string; agentId: string; propertyTitle: string }) => {
+      const { error } = await supabase
+        .from("eoi_submissions")
+        .update({ stage })
+        .eq("id", id);
+      if (error) throw error;
+      
+      // Create notification for the agent
+      const stageLabels: Record<string, string> = {
+        offer_submitted: "Offer Submitted",
+        offer_accepted: "Offer Accepted",
+        exchanged: "Exchanged",
+        settled: "Settled",
+      };
+      
+      await supabase.from("notifications").insert({
+        user_id: agentId,
+        title: "EOI Stage Updated",
+        message: `Your EOI for "${propertyTitle}" has been updated to: ${stageLabels[stage] || stage}`,
+        type: "info",
+        link: "/my-submissions",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-eoi-submissions"] });
+      toast.success("EOI stage updated successfully");
+    },
+    onError: () => toast.error("Failed to update EOI stage"),
+  });
+
   const filterByStatus = <T extends { status: string }>(items: T[] | undefined) => {
     if (!items) return [];
     if (statusFilter === "all") return items;
@@ -237,8 +283,8 @@ const SubmissionsManager = () => {
                   <TableRow>
                     <TableHead>Property</TableHead>
                     <TableHead>Lead</TableHead>
-                    <TableHead>Notes</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Stage</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -265,8 +311,30 @@ const SubmissionsManager = () => {
                             <div className="text-sm text-muted-foreground">{eoi.lead?.email}</div>
                           </div>
                         </TableCell>
-                        <TableCell className="max-w-[150px] truncate">{eoi.notes || "-"}</TableCell>
                         <TableCell>{getStatusBadge(eoi.status)}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={eoi.stage || "offer_submitted"}
+                            onValueChange={(newStage) => {
+                              updateEOIStageMutation.mutate({
+                                id: eoi.id,
+                                stage: newStage,
+                                agentId: eoi.agent_id,
+                                propertyTitle: eoi.property?.title || "Property",
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="w-[140px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="offer_submitted">Offer Submitted</SelectItem>
+                              <SelectItem value="offer_accepted">Offer Accepted</SelectItem>
+                              <SelectItem value="exchanged">Exchanged</SelectItem>
+                              <SelectItem value="settled">Settled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell>{format(new Date(eoi.created_at), "MMM d, yyyy")}</TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button
