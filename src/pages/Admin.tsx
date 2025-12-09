@@ -43,6 +43,7 @@ import AdPlacementsManager from "@/components/admin/AdPlacementsManager";
 import AdCampaignsManager from "@/components/admin/AdCampaignsManager";
 import AdCreativesManager from "@/components/admin/AdCreativesManager";
 import AdAnalytics from "@/components/admin/AdAnalytics";
+import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 
 type Property = {
   id: string;
@@ -67,6 +68,9 @@ const Admin = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     const checkAuthAndRole = async () => {
@@ -268,9 +272,12 @@ const Admin = () => {
 
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) return;
-    if (confirm(`Are you sure you want to delete ${selectedIds.length} properties? This action cannot be undone.`)) {
-      bulkDeleteMutation.mutate(selectedIds);
-    }
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = () => {
+    bulkDeleteMutation.mutate(selectedIds);
+    setBulkDeleteDialogOpen(false);
   };
 
   if (roleLoading || isLoading) {
@@ -474,7 +481,10 @@ const Admin = () => {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => deleteMutation.mutate(property.id)}
+                            onClick={() => {
+                              setPropertyToDelete({ id: property.id, title: property.title });
+                              setSingleDeleteDialogOpen(true);
+                            }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -560,6 +570,30 @@ const Admin = () => {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Bulk Delete Confirmation */}
+        <DeleteConfirmDialog
+          open={bulkDeleteDialogOpen}
+          onOpenChange={setBulkDeleteDialogOpen}
+          onConfirm={confirmBulkDelete}
+          title="Delete Multiple Properties"
+          description={`This will permanently delete ${selectedIds.length} properties. This action cannot be undone.`}
+        />
+
+        {/* Single Property Delete Confirmation */}
+        <DeleteConfirmDialog
+          open={singleDeleteDialogOpen}
+          onOpenChange={setSingleDeleteDialogOpen}
+          onConfirm={() => {
+            if (propertyToDelete) {
+              deleteMutation.mutate(propertyToDelete.id);
+              setSingleDeleteDialogOpen(false);
+              setPropertyToDelete(null);
+            }
+          }}
+          title="Delete Property"
+          itemName={propertyToDelete?.title}
+        />
       </div>
     </Layout>
   );
