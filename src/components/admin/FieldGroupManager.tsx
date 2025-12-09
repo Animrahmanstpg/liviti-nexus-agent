@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { FolderPlus, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 interface FieldGroup {
   id: string;
@@ -45,6 +46,8 @@ export const FieldGroupManager = ({ groups, isLoading }: FieldGroupManagerProps)
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<FieldGroup | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<{ id: string; label: string } | null>(null);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -304,7 +307,10 @@ export const FieldGroupManager = ({ groups, isLoading }: FieldGroupManagerProps)
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => deleteMutation.mutate(group.id)}
+                        onClick={() => {
+                          setGroupToDelete({ id: group.id, label: group.label });
+                          setDeleteDialogOpen(true);
+                        }}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -316,6 +322,20 @@ export const FieldGroupManager = ({ groups, isLoading }: FieldGroupManagerProps)
           </TableBody>
         </Table>
       </div>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (groupToDelete) {
+            deleteMutation.mutate(groupToDelete.id);
+            setDeleteDialogOpen(false);
+            setGroupToDelete(null);
+          }
+        }}
+        title="Delete Field Group"
+        itemName={groupToDelete?.label}
+      />
     </div>
   );
 };

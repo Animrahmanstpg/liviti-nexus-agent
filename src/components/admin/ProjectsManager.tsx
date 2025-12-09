@@ -29,6 +29,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, Home, Upload, X, ImageIcon } from "lucide-react";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 type Project = {
   id: string;
@@ -48,6 +49,8 @@ export const ProjectsManager = () => {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -321,7 +324,10 @@ export const ProjectsManager = () => {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => deleteMutation.mutate(project.id)}
+                      onClick={() => {
+                        setProjectToDelete({ id: project.id, name: project.name });
+                        setDeleteDialogOpen(true);
+                      }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -442,6 +448,20 @@ export const ProjectsManager = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (projectToDelete) {
+            deleteMutation.mutate(projectToDelete.id);
+            setDeleteDialogOpen(false);
+            setProjectToDelete(null);
+          }
+        }}
+        title="Delete Project"
+        itemName={projectToDelete?.name}
+      />
     </div>
   );
 };

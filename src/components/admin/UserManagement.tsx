@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 type AppRole = "admin" | "agent" | "user";
 
@@ -31,6 +32,8 @@ const UserManagement = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<AppRole>("agent");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [roleToRevoke, setRoleToRevoke] = useState<{ id: string; role: string; email: string } | null>(null);
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ["admin-users-list"],
@@ -359,7 +362,10 @@ const UserManagement = () => {
                           size="sm"
                           variant="ghost"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => revokeRole.mutate(r.id)}
+                          onClick={() => {
+                            setRoleToRevoke({ id: r.id, role: r.role, email: user.email });
+                            setDeleteDialogOpen(true);
+                          }}
                           title={`Revoke ${r.role} role`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -373,6 +379,20 @@ const UserManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (roleToRevoke) {
+            revokeRole.mutate(roleToRevoke.id);
+            setDeleteDialogOpen(false);
+            setRoleToRevoke(null);
+          }
+        }}
+        title="Revoke User Role"
+        description={roleToRevoke ? `This will remove the "${roleToRevoke.role}" role from ${roleToRevoke.email}. The user may lose access to certain features.` : undefined}
+      />
     </div>
   );
 };

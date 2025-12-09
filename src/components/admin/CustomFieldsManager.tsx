@@ -40,6 +40,7 @@ import { Plus, Pencil, Trash2, Settings, FolderPlus, Folder } from "lucide-react
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FieldGroupManager } from "./FieldGroupManager";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 interface CustomField {
   id: string;
@@ -83,6 +84,8 @@ export const CustomFieldsManager = () => {
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [editingGroup, setEditingGroup] = useState<FieldGroup | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fieldToDelete, setFieldToDelete] = useState<{ id: string; label: string } | null>(null);
   
   const [fieldFormData, setFieldFormData] = useState({
     name: "",
@@ -468,7 +471,10 @@ export const CustomFieldsManager = () => {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => deleteMutation.mutate(field.id)}
+                              onClick={() => {
+                                setFieldToDelete({ id: field.id, label: field.label });
+                                setDeleteDialogOpen(true);
+                              }}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -542,7 +548,10 @@ export const CustomFieldsManager = () => {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => deleteMutation.mutate(field.id)}
+                                onClick={() => {
+                                  setFieldToDelete({ id: field.id, label: field.label });
+                                  setDeleteDialogOpen(true);
+                                }}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -562,6 +571,19 @@ export const CustomFieldsManager = () => {
       <TabsContent value="groups" className="mt-6">
         <FieldGroupManager groups={fieldGroups} isLoading={isLoading} />
       </TabsContent>
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (fieldToDelete) {
+            deleteMutation.mutate(fieldToDelete.id);
+            setDeleteDialogOpen(false);
+            setFieldToDelete(null);
+          }
+        }}
+        title="Delete Custom Field"
+        itemName={fieldToDelete?.label}
+      />
     </Tabs>
   );
 };
