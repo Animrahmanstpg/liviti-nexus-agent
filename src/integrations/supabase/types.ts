@@ -448,6 +448,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           special_condition: string | null
+          stage: string
           status: string
           updated_at: string
         }
@@ -468,6 +469,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           special_condition?: string | null
+          stage?: string
           status?: string
           updated_at?: string
         }
@@ -488,6 +490,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           special_condition?: string | null
+          stage?: string
           status?: string
           updated_at?: string
         }

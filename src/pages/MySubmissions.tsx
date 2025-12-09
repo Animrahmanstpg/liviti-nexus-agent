@@ -83,6 +83,21 @@ const MySubmissions = () => {
     }
   };
 
+  const getStageBadge = (stage: string) => {
+    switch (stage) {
+      case "offer_submitted":
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">Offer Submitted</Badge>;
+      case "offer_accepted":
+        return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Offer Accepted</Badge>;
+      case "exchanged":
+        return <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20">Exchanged</Badge>;
+      case "settled":
+        return <Badge variant="outline" className="bg-green-600/10 text-green-600 border-green-600/20">Settled</Badge>;
+      default:
+        return <Badge variant="outline">{stage || "Offer Submitted"}</Badge>;
+    }
+  };
+
   const filterByStatus = <T extends { status: string }>(items: T[] | undefined) => {
     if (!items) return [];
     if (statusFilter === "all") return items;
@@ -213,8 +228,8 @@ const MySubmissions = () => {
                     <TableHead className="font-semibold">Property</TableHead>
                     <TableHead className="font-semibold">Lead</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Stage</TableHead>
                     <TableHead className="font-semibold">Submitted</TableHead>
-                    <TableHead className="font-semibold">Review Notes</TableHead>
                     <TableHead className="text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -248,11 +263,9 @@ const MySubmissions = () => {
                           </div>
                         </TableCell>
                         <TableCell>{getStatusBadge(eoi.status)}</TableCell>
+                        <TableCell>{getStageBadge(eoi.stage)}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(eoi.created_at), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                          {eoi.review_notes || "—"}
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button
