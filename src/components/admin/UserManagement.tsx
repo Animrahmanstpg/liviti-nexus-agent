@@ -94,6 +94,37 @@ const UserManagement = () => {
     },
   });
 
+  const changeRole = useMutation({
+    mutationFn: async ({ userId, currentRoleId, newRole }: { userId: string; currentRoleId: string; newRole: AppRole }) => {
+      // First delete the existing role
+      const { error: deleteError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("id", currentRoleId);
+      
+      if (deleteError) throw deleteError;
+      
+      // Then insert the new role
+      const { error: insertError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: userId, role: newRole });
+      
+      if (insertError) throw insertError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users-list"] });
+      toast({ title: "Role updated successfully" });
+    },
+    onError: (error: any) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users-list"] });
+      toast({ 
+        title: "Failed to update role", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   const getRoleBadge = (role: string) => {
     const styles: Record<string, string> = {
       admin: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -285,10 +316,31 @@ const UserManagement = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex gap-2 flex-wrap items-center">
                         {user.roles.length > 0 ? (
                           user.roles.map((r) => (
-                            <span key={r.id}>{getRoleBadge(r.role)}</span>
+                            <Select
+                              key={r.id}
+                              value={r.role}
+                              onValueChange={(newRole) => {
+                                if (newRole !== r.role) {
+                                  changeRole.mutate({ 
+                                    userId: user.id, 
+                                    currentRoleId: r.id, 
+                                    newRole: newRole as AppRole 
+                                  });
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-[110px] h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="agent">Agent</SelectItem>
+                                <SelectItem value="user">User</SelectItem>
+                              </SelectContent>
+                            </Select>
                           ))
                         ) : (
                           <span className="text-muted-foreground text-sm">No roles</span>
