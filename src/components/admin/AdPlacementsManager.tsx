@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, LayoutGrid } from "lucide-react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 interface AdPlacement {
   id: string;
@@ -30,6 +31,8 @@ const AdPlacementsManager = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlacement, setEditingPlacement] = useState<AdPlacement | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [placementToDelete, setPlacementToDelete] = useState<{ id: string; label: string } | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     label: "",
@@ -282,7 +285,10 @@ const AdPlacementsManager = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => deleteMutation.mutate(placement.id)}
+                      onClick={() => {
+                        setPlacementToDelete({ id: placement.id, label: placement.label });
+                        setDeleteDialogOpen(true);
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -293,6 +299,20 @@ const AdPlacementsManager = () => {
           </Table>
         )}
       </CardContent>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (placementToDelete) {
+            deleteMutation.mutate(placementToDelete.id);
+            setDeleteDialogOpen(false);
+            setPlacementToDelete(null);
+          }
+        }}
+        title="Delete Ad Placement"
+        itemName={placementToDelete?.label}
+      />
     </Card>
   );
 };

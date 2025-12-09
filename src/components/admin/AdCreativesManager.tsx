@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Image, Upload, ExternalLink } from "lucide-react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 interface AdCreative {
   id: string;
@@ -49,6 +50,8 @@ const AdCreativesManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCreative, setEditingCreative] = useState<AdCreative | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [creativeToDelete, setCreativeToDelete] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     campaign_id: "",
     placement_id: "",
@@ -453,7 +456,10 @@ const AdCreativesManager = () => {
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(creative)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(creative.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => {
+                      setCreativeToDelete({ id: creative.id, name: creative.name });
+                      setDeleteDialogOpen(true);
+                    }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -470,6 +476,20 @@ const AdCreativesManager = () => {
           </Table>
         )}
       </CardContent>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (creativeToDelete) {
+            deleteMutation.mutate(creativeToDelete.id);
+            setDeleteDialogOpen(false);
+            setCreativeToDelete(null);
+          }
+        }}
+        title="Delete Ad Creative"
+        itemName={creativeToDelete?.name}
+      />
     </Card>
   );
 };

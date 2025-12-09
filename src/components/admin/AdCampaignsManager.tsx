@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Copy, Megaphone, DollarSign } from "lucide-react";
 import { format } from "date-fns";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 interface AdCampaign {
   id: string;
@@ -40,6 +41,8 @@ const AdCampaignsManager = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<AdCampaign | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     advertiser_name: "",
@@ -354,7 +357,10 @@ const AdCampaignsManager = () => {
                     <Button variant="ghost" size="icon" onClick={() => handleDuplicate(campaign)}>
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(campaign.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => {
+                      setCampaignToDelete({ id: campaign.id, name: campaign.name });
+                      setDeleteDialogOpen(true);
+                    }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -371,6 +377,20 @@ const AdCampaignsManager = () => {
           </Table>
         )}
       </CardContent>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (campaignToDelete) {
+            deleteMutation.mutate(campaignToDelete.id);
+            setDeleteDialogOpen(false);
+            setCampaignToDelete(null);
+          }
+        }}
+        title="Delete Campaign"
+        itemName={campaignToDelete?.name}
+      />
     </Card>
   );
 };
