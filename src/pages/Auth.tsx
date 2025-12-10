@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Loader2, Building2, TrendingUp, Users, FileText, DollarSign, Shield, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Home, Loader2, Building2, TrendingUp, Users, FileText, DollarSign, Shield, CheckCircle2, ArrowLeft, Mail, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -37,6 +38,8 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [showVerificationBanner, setShowVerificationBanner] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   // Get the intended destination from location state
   const from = (location.state as {
@@ -154,7 +157,16 @@ const Auth = () => {
           toast.error("This email is already registered. Please log in instead.");
           return;
         }
-        toast.success("Account created successfully! You can now log in.");
+        
+        // Show verification banner if email needs confirmation
+        if (!data.session) {
+          setVerificationEmail(signupData.email);
+          setShowVerificationBanner(true);
+          toast.success("Account created! Please check your email to verify.");
+        } else {
+          toast.success("Account created successfully! You can now log in.");
+        }
+        
         // Clear form
         setSignupData({
           name: "",
@@ -297,6 +309,54 @@ const Auth = () => {
       {/* Right Side - Auth Form */}
       <div className="flex-1 flex items-center justify-center bg-gradient-subtle p-6 lg:p-12">
         <div className="w-full max-w-md space-y-8">
+          {/* Email Verification Banner */}
+          {showVerificationBanner && (
+            <Alert className="border-accent/50 bg-accent/10">
+              <Mail className="h-4 w-4 text-accent" />
+              <AlertTitle className="text-accent font-semibold">Verify your email</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p className="text-muted-foreground text-sm">
+                  We've sent a verification link to <span className="font-medium text-foreground">{verificationEmail}</span>. 
+                  Please check your inbox and click the link to activate your account.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setIsLoading(true);
+                      const { error } = await supabase.auth.resend({
+                        type: 'signup',
+                        email: verificationEmail,
+                        options: {
+                          emailRedirectTo: `${window.location.origin}/`,
+                        }
+                      });
+                      setIsLoading(false);
+                      if (error) {
+                        toast.error(error.message);
+                      } else {
+                        toast.success("Verification email resent!");
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="text-xs"
+                  >
+                    {isLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                    Resend email
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setShowVerificationBanner(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Mobile Logo & Hero */}
           <div className="text-center lg:hidden space-y-4">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-primary shadow-lg">
