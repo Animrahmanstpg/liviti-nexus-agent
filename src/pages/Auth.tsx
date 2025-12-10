@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Loader2, Building2, TrendingUp, Users, FileText, DollarSign, Shield, CheckCircle2 } from "lucide-react";
+import { Home, Loader2, Building2, TrendingUp, Users, FileText, DollarSign, Shield, CheckCircle2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -35,6 +35,8 @@ const Auth = () => {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   // Get the intended destination from location state
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
@@ -144,6 +146,37 @@ const Auth = () => {
         // Clear form
         setSignupData({ name: "", email: "", password: "", confirmPassword: "" });
       }
+    } catch (error: any) {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      emailSchema.parse(resetEmail);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success("Password reset email sent! Check your inbox.");
+      setShowForgotPassword(false);
+      setResetEmail("");
     } catch (error: any) {
       toast.error("An unexpected error occurred");
     } finally {
@@ -286,6 +319,46 @@ const Auth = () => {
           </div>
 
           <Card className="border-border/50 shadow-xl">
+            {showForgotPassword ? (
+              <CardContent className="p-6 space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to sign in
+                </button>
+                <div className="space-y-2 text-center">
+                  <h3 className="text-xl font-semibold text-foreground">Reset your password</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your email address and we'll send you a link to reset your password.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email" className="text-foreground">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="agent@liviti.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="bg-muted/50"
+                    onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
+                  />
+                </div>
+                <Button onClick={handleForgotPassword} className="w-full shadow-md" size="lg" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Reset Link"
+                  )}
+                </Button>
+              </CardContent>
+            ) : (
             <Tabs defaultValue="login" className="w-full">
               <div className="p-6 pb-4">
                 <TabsList className="grid w-full grid-cols-2">
@@ -319,6 +392,13 @@ const Auth = () => {
                       className="bg-muted/50"
                       onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-xs text-primary hover:text-primary/80 hover:underline transition-colors"
+                    >
+                      Forgot your password?
+                    </button>
                   </div>
                   <Button onClick={handleLogin} className="w-full shadow-md" size="lg" disabled={isLoading}>
                     {isLoading ? (
@@ -411,6 +491,7 @@ const Auth = () => {
                 </CardContent>
               </TabsContent>
             </Tabs>
+            )}
           </Card>
 
           {/* Footer */}
