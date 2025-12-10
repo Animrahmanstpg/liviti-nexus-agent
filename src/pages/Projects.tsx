@@ -50,11 +50,11 @@ const Projects = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-medium";
+        return "bg-emerald-600 text-white border-emerald-700 font-medium shadow-sm";
       case "completed":
-        return "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30 font-medium";
+        return "bg-blue-600 text-white border-blue-700 font-medium shadow-sm";
       case "upcoming":
-        return "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 font-medium";
+        return "bg-amber-500 text-white border-amber-600 font-medium shadow-sm";
       default:
         return "bg-muted text-muted-foreground border-border";
     }
