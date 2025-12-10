@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Heart, FileText, Menu } from "lucide-react";
+import { LogOut, Heart, FileText, Menu, Settings, UserX } from "lucide-react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -195,6 +195,11 @@ const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuItem onClick={() => navigate("/my-submissions")} className="gap-2 cursor-pointer">
                     <FileText className="h-4 w-4" />
                     My Submissions
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/profile-settings")} className="gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    Profile Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">

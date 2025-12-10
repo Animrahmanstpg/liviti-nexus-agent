@@ -299,7 +299,7 @@ const Admin = () => {
         <h1 className="text-4xl font-bold mb-6">Admin Portal</h1>
 
         <Tabs defaultValue="properties" className="w-full">
-          <TabsList className="flex w-full max-w-5xl flex-wrap">
+          <TabsList className="sticky top-16 z-20 flex w-full max-w-5xl flex-wrap bg-background/95 backdrop-blur-sm mb-4 p-1">
             <TabsTrigger value="properties">Properties</TabsTrigger>
             <TabsTrigger value="projects">
               <FolderKanban className="w-4 h-4 mr-2" />

@@ -93,12 +93,20 @@ const Sidebar = ({
         const Icon = getIcon(item.icon);
         const isActive = location.pathname === item.path;
 
+        const handleClick = (e: React.MouseEvent) => {
+            // Navigate immediately without affecting sidebar state
+            if (onClick) {
+                onClick();
+            }
+        };
+
         return (
             <Link
                 to={item.path}
-                onClick={onClick}
+                onClick={handleClick}
                 className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative",
+                    "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 group relative",
+                    collapsed ? "px-3 py-3 justify-center" : "px-4 py-3",
                     isActive
                         ? "bg-primary text-primary-foreground shadow-md"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -108,12 +116,9 @@ const Sidebar = ({
                     "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
                     isActive && "text-primary-foreground"
                 )} />
-                <span className={cn(
-                    "transition-all duration-300",
-                    collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-                )}>
-                    {item.label}
-                </span>
+                {!collapsed && (
+                    <span>{item.label}</span>
+                )}
                 {isActive && !collapsed && (
                     <div className="absolute right-2 w-1.5 h-8 bg-primary-foreground/30 rounded-full" />
                 )}
@@ -168,41 +173,37 @@ const Sidebar = ({
             {user && (
                 <div className={cn(
                     "p-4 border-t border-border/50 bg-muted/30",
-                    collapsed && !isMobile && "px-2"
+                    collapsed && !isMobile && "p-2"
                 )}>
                     <div className={cn(
                         "flex items-center gap-3 p-2 rounded-xl",
-                        collapsed && !isMobile && "justify-center"
+                        collapsed && !isMobile && "flex-col justify-center p-1"
                     )}>
                         <Avatar className="h-9 w-9 shrink-0">
                             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                                 {userInitials}
                             </AvatarFallback>
                         </Avatar>
-                        <div className={cn(
-                            "flex-1 min-w-0 transition-all duration-300",
-                            collapsed && !isMobile ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-                        )}>
-                            <p className="font-medium text-sm truncate">{userName}</p>
-                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        </div>
+                        {!collapsed || isMobile ? (
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{userName}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                            </div>
+                        ) : null}
                     </div>
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size={collapsed && !isMobile ? "icon" : "sm"}
                         onClick={() => setShowLogoutDialog(true)}
                         className={cn(
                             "w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all",
-                            collapsed && !isMobile ? "justify-center px-2" : "justify-start"
+                            collapsed && !isMobile ? "justify-center h-9 w-full" : "justify-start"
                         )}
                     >
                         <LogOut className="h-4 w-4 shrink-0" />
-                        <span className={cn(
-                            "ml-2 transition-all duration-300",
-                            collapsed && !isMobile ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-                        )}>
-                            Logout
-                        </span>
+                        {!collapsed || isMobile ? (
+                            <span className="ml-2">Logout</span>
+                        ) : null}
                     </Button>
                 </div>
             )}
