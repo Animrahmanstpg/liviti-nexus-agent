@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "./PageTransition";
+import ProtectedRoute from "./ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import Properties from "@/pages/Properties";
 import Projects from "@/pages/Projects";
@@ -24,23 +25,28 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/properties" element={<PageTransition><Properties /></PageTransition>} />
-        <Route path="/properties/:id" element={<PageTransition><PropertyDetail /></PageTransition>} />
-        <Route path="/projects" element={<PageTransition><Projects /></PageTransition>} />
-        <Route path="/projects/:id" element={<PageTransition><ProjectDetail /></PageTransition>} />
-        <Route path="/leads" element={<PageTransition><Leads /></PageTransition>} />
-        <Route path="/leads/:id" element={<PageTransition><LeadDetail /></PageTransition>} />
-        <Route path="/favorites" element={<PageTransition><Favorites /></PageTransition>} />
-        <Route path="/compare" element={<PageTransition><Compare /></PageTransition>} />
+        {/* Public route - Auth */}
         <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
-        <Route path="/admin" element={<PageTransition><Admin /></PageTransition>} />
-        <Route path="/analytics" element={<PageTransition><Analytics /></PageTransition>} />
-        <Route path="/bulk-import" element={<PageTransition><BulkImportPage /></PageTransition>} />
-        <Route path="/my-submissions" element={<PageTransition><MySubmissions /></PageTransition>} />
-        <Route path="/advertise" element={<PageTransition><Advertise /></PageTransition>} />
-        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+        
+        {/* Protected routes */}
+        <Route path="/" element={<ProtectedRoute><PageTransition><Dashboard /></PageTransition></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><PageTransition><Dashboard /></PageTransition></ProtectedRoute>} />
+        <Route path="/properties" element={<ProtectedRoute><PageTransition><Properties /></PageTransition></ProtectedRoute>} />
+        <Route path="/properties/:id" element={<ProtectedRoute><PageTransition><PropertyDetail /></PageTransition></ProtectedRoute>} />
+        <Route path="/projects" element={<ProtectedRoute><PageTransition><Projects /></PageTransition></ProtectedRoute>} />
+        <Route path="/projects/:id" element={<ProtectedRoute><PageTransition><ProjectDetail /></PageTransition></ProtectedRoute>} />
+        <Route path="/leads" element={<ProtectedRoute><PageTransition><Leads /></PageTransition></ProtectedRoute>} />
+        <Route path="/leads/:id" element={<ProtectedRoute><PageTransition><LeadDetail /></PageTransition></ProtectedRoute>} />
+        <Route path="/favorites" element={<ProtectedRoute><PageTransition><Favorites /></PageTransition></ProtectedRoute>} />
+        <Route path="/compare" element={<ProtectedRoute><PageTransition><Compare /></PageTransition></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><PageTransition><Admin /></PageTransition></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><PageTransition><Analytics /></PageTransition></ProtectedRoute>} />
+        <Route path="/bulk-import" element={<ProtectedRoute><PageTransition><BulkImportPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/my-submissions" element={<ProtectedRoute><PageTransition><MySubmissions /></PageTransition></ProtectedRoute>} />
+        <Route path="/advertise" element={<ProtectedRoute><PageTransition><Advertise /></PageTransition></ProtectedRoute>} />
+        
+        {/* 404 - Protected */}
+        <Route path="*" element={<ProtectedRoute><PageTransition><NotFound /></PageTransition></ProtectedRoute>} />
       </Routes>
     </AnimatePresence>
   );
