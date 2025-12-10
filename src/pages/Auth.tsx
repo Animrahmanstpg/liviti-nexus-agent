@@ -10,57 +10,71 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import PasswordStrength from "@/components/PasswordStrength";
-
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
-
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
+}).refine(data => data.password === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"],
+  path: ["confirmPassword"]
 });
-
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [loginData, setLoginData] = useState({
+    email: "",
+    password: ""
+  });
   const [signupData, setSignupData] = useState({
     name: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    confirmPassword: ""
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
   // Get the intended destination from location state
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+  const from = (location.state as {
+    from?: {
+      pathname: string;
+    };
+  })?.from?.pathname || "/dashboard";
 
   // Check if already logged in
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       if (session) {
-        navigate(from, { replace: true });
+        navigate(from, {
+          replace: true
+        });
       }
     };
     checkSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: {
+        subscription
+      }
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && event === 'SIGNED_IN') {
-        navigate(from, { replace: true });
+        navigate(from, {
+          replace: true
+        });
       }
     });
-
     return () => subscription.unsubscribe();
   }, [navigate, from]);
-
   const handleLogin = async () => {
     // Validate input
     try {
@@ -72,14 +86,15 @@ const Auth = () => {
         return;
       }
     }
-
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const {
+        data,
+        error
+      } = await supabase.auth.signInWithPassword({
         email: loginData.email,
-        password: loginData.password,
+        password: loginData.password
       });
-
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
           toast.error("Invalid email or password");
@@ -90,7 +105,6 @@ const Auth = () => {
         }
         return;
       }
-
       if (data.session) {
         toast.success("Welcome back!");
         // Navigation will be handled by onAuthStateChange
@@ -101,7 +115,6 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
-
   const handleSignup = async () => {
     // Validate input
     try {
@@ -112,20 +125,21 @@ const Auth = () => {
         return;
       }
     }
-
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const {
+        data,
+        error
+      } = await supabase.auth.signUp({
         email: signupData.email,
         password: signupData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            full_name: signupData.name,
+            full_name: signupData.name
           }
         }
       });
-
       if (error) {
         if (error.message.includes("User already registered")) {
           toast.error("An account with this email already exists");
@@ -134,17 +148,20 @@ const Auth = () => {
         }
         return;
       }
-
       if (data.user) {
         // Check if email confirmation is required
         if (data.user.identities && data.user.identities.length === 0) {
           toast.error("This email is already registered. Please log in instead.");
           return;
         }
-        
         toast.success("Account created successfully! You can now log in.");
         // Clear form
-        setSignupData({ name: "", email: "", password: "", confirmPassword: "" });
+        setSignupData({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: ""
+        });
       }
     } catch (error: any) {
       toast.error("An unexpected error occurred");
@@ -152,7 +169,6 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
-
   const handleForgotPassword = async () => {
     try {
       emailSchema.parse(resetEmail);
@@ -162,18 +178,17 @@ const Auth = () => {
         return;
       }
     }
-
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const {
+        error
+      } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`
       });
-
       if (error) {
         toast.error(error.message);
         return;
       }
-
       toast.success("Password reset email sent! Check your inbox.");
       setShowForgotPassword(false);
       setResetEmail("");
@@ -183,43 +198,38 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
-
-  const features = [
-    { 
-      icon: Building2, 
-      title: "Exclusive Property Access", 
-      description: "Browse premium off-market and pre-release listings before they hit the market" 
-    },
-    { 
-      icon: Users, 
-      title: "Smart Lead Management", 
-      description: "Never lose a prospect with intelligent CRM tracking for every interaction" 
-    },
-    { 
-      icon: FileText, 
-      title: "Seamless EOI Submissions", 
-      description: "Submit expressions of interest in minutes with our streamlined workflow" 
-    },
-    { 
-      icon: DollarSign, 
-      title: "Commission Transparency", 
-      description: "Real-time visibility on your pipeline and potential earnings" 
-    },
-    { 
-      icon: TrendingUp, 
-      title: "Performance Analytics", 
-      description: "Track your metrics and outperform your sales targets" 
-    },
-  ];
-
-  const stats = [
-    { value: "40%", label: "More deals closed" },
-    { value: "2x", label: "Faster EOI processing" },
-    { value: "500+", label: "Active agents" },
-  ];
-
-  return (
-    <div className="min-h-screen flex">
+  const features = [{
+    icon: Building2,
+    title: "Exclusive Property Access",
+    description: "Browse premium off-market and pre-release listings before they hit the market"
+  }, {
+    icon: Users,
+    title: "Smart Lead Management",
+    description: "Never lose a prospect with intelligent CRM tracking for every interaction"
+  }, {
+    icon: FileText,
+    title: "Seamless EOI Submissions",
+    description: "Submit expressions of interest in minutes with our streamlined workflow"
+  }, {
+    icon: DollarSign,
+    title: "Commission Transparency",
+    description: "Real-time visibility on your pipeline and potential earnings"
+  }, {
+    icon: TrendingUp,
+    title: "Performance Analytics",
+    description: "Track your metrics and outperform your sales targets"
+  }];
+  const stats = [{
+    value: "40%",
+    label: "More deals closed"
+  }, {
+    value: "2x",
+    label: "Faster EOI processing"
+  }, {
+    value: "500+",
+    label: "Active agents"
+  }];
+  return <div className="min-h-screen flex">
       {/* Left Side - Branding & Marketing */}
       <div className="hidden lg:flex lg:w-[55%] bg-gradient-hero relative overflow-hidden">
         {/* Background pattern */}
@@ -235,7 +245,7 @@ const Auth = () => {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent shadow-lg">
               <Home className="h-6 w-6 text-accent-foreground" />
             </div>
-            <span className="text-2xl font-display font-bold">Liviti</span>
+            <span className="text-2xl font-display font-bold">St Trinity</span>
           </div>
 
           {/* Hero Content */}
@@ -252,26 +262,19 @@ const Auth = () => {
 
             {/* Stats */}
             <div className="flex gap-8">
-              {stats.map((stat, index) => (
-                <div 
-                  key={stat.label}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
+              {stats.map((stat, index) => <div key={stat.label} className="animate-fade-in" style={{
+              animationDelay: `${index * 0.1}s`
+            }}>
                   <div className="text-3xl font-display font-bold text-accent">{stat.value}</div>
                   <div className="text-sm text-primary-foreground/70">{stat.label}</div>
-                </div>
-              ))}
+                </div>)}
             </div>
 
             {/* Features */}
             <div className="space-y-4">
-              {features.map((feature, index) => (
-                <div 
-                  key={feature.title}
-                  className="flex items-start gap-4 animate-fade-in group"
-                  style={{ animationDelay: `${(index + 3) * 0.1}s` }}
-                >
+              {features.map((feature, index) => <div key={feature.title} className="flex items-start gap-4 animate-fade-in group" style={{
+              animationDelay: `${(index + 3) * 0.1}s`
+            }}>
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/10 group-hover:bg-accent/20 transition-colors shrink-0">
                     <feature.icon className="h-5 w-5" />
                   </div>
@@ -279,8 +282,7 @@ const Auth = () => {
                     <h3 className="font-semibold">{feature.title}</h3>
                     <p className="text-sm text-primary-foreground/70">{feature.description}</p>
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </div>
 
@@ -319,13 +321,8 @@ const Auth = () => {
           </div>
 
           <Card className="border-border/50 shadow-xl">
-            {showForgotPassword ? (
-              <CardContent className="p-6 space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(false)}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
+            {showForgotPassword ? <CardContent className="p-6 space-y-4">
+                <button type="button" onClick={() => setShowForgotPassword(false)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
                   <ArrowLeft className="h-4 w-4" />
                   Back to sign in
                 </button>
@@ -337,29 +334,15 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reset-email" className="text-foreground">Email</Label>
-                  <Input
-                    id="reset-email"
-                    type="email"
-                    placeholder="agent@liviti.com"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    className="bg-muted/50"
-                    onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
-                  />
+                  <Input id="reset-email" type="email" placeholder="agent@liviti.com" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="bg-muted/50" onKeyDown={e => e.key === 'Enter' && handleForgotPassword()} />
                 </div>
                 <Button onClick={handleForgotPassword} className="w-full shadow-md" size="lg" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
+                  {isLoading ? <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Sending...
-                    </>
-                  ) : (
-                    "Send Reset Link"
-                  )}
+                    </> : "Send Reset Link"}
                 </Button>
-              </CardContent>
-            ) : (
-            <Tabs defaultValue="login" className="w-full">
+              </CardContent> : <Tabs defaultValue="login" className="w-full">
               <div className="p-6 pb-4">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login" className="font-medium">Sign In</TabsTrigger>
@@ -371,44 +354,26 @@ const Auth = () => {
                 <CardContent className="space-y-4 pt-0">
                   <div className="space-y-2">
                     <Label htmlFor="login-email" className="text-foreground">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="agent@liviti.com"
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                      className="bg-muted/50"
-                      onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                    />
+                    <Input id="login-email" type="email" placeholder="agent@liviti.com" value={loginData.email} onChange={e => setLoginData({
+                    ...loginData,
+                    email: e.target.value
+                  })} className="bg-muted/50" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password" className="text-foreground">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      className="bg-muted/50"
-                      onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-xs text-primary hover:text-primary/80 hover:underline transition-colors"
-                    >
+                    <Input id="login-password" type="password" placeholder="••••••••" value={loginData.password} onChange={e => setLoginData({
+                    ...loginData,
+                    password: e.target.value
+                  })} className="bg-muted/50" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                    <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-primary hover:text-primary/80 hover:underline transition-colors">
                       Forgot your password?
                     </button>
                   </div>
                   <Button onClick={handleLogin} className="w-full shadow-md" size="lg" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
+                    {isLoading ? <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Signing in...
-                      </>
-                    ) : (
-                      "Sign In"
-                    )}
+                      </> : "Sign In"}
                   </Button>
                 </CardContent>
               </TabsContent>
@@ -419,79 +384,54 @@ const Auth = () => {
                   <div className="bg-accent/10 rounded-lg p-3 space-y-2">
                     <p className="text-sm font-medium text-foreground">Start closing deals today:</p>
                     <div className="flex flex-wrap gap-2">
-                      {["Instant access", "No fees", "Premium listings"].map((benefit) => (
-                        <span key={benefit} className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      {["Instant access", "No fees", "Premium listings"].map(benefit => <span key={benefit} className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <CheckCircle2 className="h-3 w-3 text-accent" />
                           {benefit}
-                        </span>
-                      ))}
+                        </span>)}
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="signup-name" className="text-foreground">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      placeholder="John Doe"
-                      value={signupData.name}
-                      onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
-                      className="bg-muted/50"
-                    />
+                    <Input id="signup-name" placeholder="John Doe" value={signupData.name} onChange={e => setSignupData({
+                    ...signupData,
+                    name: e.target.value
+                  })} className="bg-muted/50" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="text-foreground">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="agent@company.com"
-                      value={signupData.email}
-                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                      className="bg-muted/50"
-                    />
+                    <Input id="signup-email" type="email" placeholder="agent@company.com" value={signupData.email} onChange={e => setSignupData({
+                    ...signupData,
+                    email: e.target.value
+                  })} className="bg-muted/50" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password" className="text-foreground">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                      className="bg-muted/50"
-                    />
+                    <Input id="signup-password" type="password" placeholder="••••••••" value={signupData.password} onChange={e => setSignupData({
+                    ...signupData,
+                    password: e.target.value
+                  })} className="bg-muted/50" />
                     <PasswordStrength password={signupData.password} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm" className="text-foreground">Confirm Password</Label>
-                    <Input
-                      id="signup-confirm"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupData.confirmPassword}
-                      onChange={(e) =>
-                        setSignupData({ ...signupData, confirmPassword: e.target.value })
-                      }
-                      className="bg-muted/50"
-                      onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
-                    />
+                    <Input id="signup-confirm" type="password" placeholder="••••••••" value={signupData.confirmPassword} onChange={e => setSignupData({
+                    ...signupData,
+                    confirmPassword: e.target.value
+                  })} className="bg-muted/50" onKeyDown={e => e.key === 'Enter' && handleSignup()} />
                   </div>
                   <Button onClick={handleSignup} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 shadow-md" size="lg" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
+                    {isLoading ? <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Creating account...
-                      </>
-                    ) : (
-                      "Create Agent Account"
-                    )}
+                      </> : "Create Agent Account"}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
                     By signing up, you agree to our Terms of Service and Privacy Policy
                   </p>
                 </CardContent>
               </TabsContent>
-            </Tabs>
-            )}
+            </Tabs>}
           </Card>
 
           {/* Footer */}
@@ -500,8 +440,6 @@ const Auth = () => {
           </p>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
