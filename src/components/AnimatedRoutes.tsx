@@ -17,6 +17,7 @@ import Analytics from "@/pages/Analytics";
 import BulkImportPage from "@/pages/BulkImportPage";
 import MySubmissions from "@/pages/MySubmissions";
 import Advertise from "@/pages/Advertise";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 
 const AnimatedRoutes = () => {
@@ -25,8 +26,9 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* Public route - Auth */}
+        {/* Public routes */}
         <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
+        <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
         
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><PageTransition><Dashboard /></PageTransition></ProtectedRoute>} />
