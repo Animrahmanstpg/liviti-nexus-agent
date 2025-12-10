@@ -5,8 +5,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { User, Lock, Trash2, Loader2, Save, AlertTriangle } from "lucide-react";
+import { 
+  User, 
+  Lock, 
+  Trash2, 
+  Loader2, 
+  Save, 
+  AlertTriangle, 
+  Mail, 
+  Phone, 
+  Building2, 
+  Globe, 
+  Linkedin, 
+  Twitter, 
+  Instagram,
+  Link2,
+  Info
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -21,6 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ProfileSettings = () => {
   const navigate = useNavigate();
@@ -33,9 +51,15 @@ const ProfileSettings = () => {
 
   // Profile form state
   const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
+  const [bio, setBio] = useState("");
+  const [website, setWebsite] = useState("");
+  const [linkedIn, setLinkedIn] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [instagram, setInstagram] = useState("");
 
   // Password form state
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -50,7 +74,18 @@ const ProfileSettings = () => {
         return;
       }
       setUser(user);
-      setDisplayName(user.user_metadata?.full_name || "");
+      
+      // Load user metadata
+      const metadata = user.user_metadata || {};
+      setDisplayName(metadata.full_name || "");
+      setPhone(metadata.phone || "");
+      setCompany(metadata.company || "");
+      setBio(metadata.bio || "");
+      setWebsite(metadata.website || "");
+      setLinkedIn(metadata.linkedin || "");
+      setTwitter(metadata.twitter || "");
+      setInstagram(metadata.instagram || "");
+      
       setIsLoading(false);
     };
     getUser();
@@ -62,7 +97,16 @@ const ProfileSettings = () => {
     setIsSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        data: { full_name: displayName }
+        data: { 
+          full_name: displayName,
+          phone,
+          company,
+          bio,
+          website,
+          linkedin: linkedIn,
+          twitter,
+          instagram,
+        }
       });
 
       if (error) throw error;
@@ -114,7 +158,6 @@ const ProfileSettings = () => {
         description: "Your password has been updated successfully.",
       });
 
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
@@ -171,7 +214,7 @@ const ProfileSettings = () => {
 
   return (
     <Layout>
-      <div className="container max-w-2xl mx-auto py-8 space-y-8">
+      <div className="container max-w-3xl mx-auto py-8 space-y-8">
         <div>
           <h1 className="text-3xl font-display font-bold">Profile Settings</h1>
           <p className="text-muted-foreground mt-1">Manage your account settings and preferences</p>
@@ -182,38 +225,184 @@ const ProfileSettings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Profile Information
+              Personal Information
             </CardTitle>
-            <CardDescription>Update your personal information</CardDescription>
+            <CardDescription>Update your personal details and contact information</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Email - Locked */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                Email Address
+              </Label>
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  value={user?.email || ""}
+                  disabled
+                  className="bg-muted pr-20"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted-foreground/10 px-2 py-0.5 rounded">
+                  Locked
+                </span>
+              </div>
+              <Alert variant="default" className="bg-muted/50 border-muted">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Email address cannot be changed directly. Please contact support if you need to update your email.
+                </AlertDescription>
+              </Alert>
             </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Display Name */}
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Full Name</Label>
+                <Input
+                  id="displayName"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g., 0412 345 678"
+                />
+              </div>
+            </div>
+
+            {/* Company */}
             <div className="space-y-2">
-              <Label htmlFor="displayName">Display Name</Label>
+              <Label htmlFor="company" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                Company / Agency
+              </Label>
               <Input
-                id="displayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Enter your display name"
+                id="company"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Enter your company or agency name"
               />
             </div>
+
+            {/* Bio */}
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell us a bit about yourself..."
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                A brief description about yourself and your experience
+              </p>
+            </div>
+
             <Button onClick={handleUpdateProfile} disabled={isSaving}>
               {isSaving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              Save Changes
+              Save Profile
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Social Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Social & Online Presence
+            </CardTitle>
+            <CardDescription>Add your website and social media profiles</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Website */}
+            <div className="space-y-2">
+              <Label htmlFor="website" className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                Website
+              </Label>
+              <Input
+                id="website"
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://yourwebsite.com"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* LinkedIn */}
+              <div className="space-y-2">
+                <Label htmlFor="linkedin" className="flex items-center gap-2">
+                  <Linkedin className="h-4 w-4 text-muted-foreground" />
+                  LinkedIn
+                </Label>
+                <Input
+                  id="linkedin"
+                  type="url"
+                  value={linkedIn}
+                  onChange={(e) => setLinkedIn(e.target.value)}
+                  placeholder="https://linkedin.com/in/username"
+                />
+              </div>
+
+              {/* Twitter */}
+              <div className="space-y-2">
+                <Label htmlFor="twitter" className="flex items-center gap-2">
+                  <Twitter className="h-4 w-4 text-muted-foreground" />
+                  Twitter / X
+                </Label>
+                <Input
+                  id="twitter"
+                  type="url"
+                  value={twitter}
+                  onChange={(e) => setTwitter(e.target.value)}
+                  placeholder="https://twitter.com/username"
+                />
+              </div>
+            </div>
+
+            {/* Instagram */}
+            <div className="space-y-2">
+              <Label htmlFor="instagram" className="flex items-center gap-2">
+                <Instagram className="h-4 w-4 text-muted-foreground" />
+                Instagram
+              </Label>
+              <Input
+                id="instagram"
+                type="url"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="https://instagram.com/username"
+              />
+            </div>
+
+            <Button onClick={handleUpdateProfile} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Social Links
             </Button>
           </CardContent>
         </Card>
@@ -228,26 +417,31 @@ const ProfileSettings = () => {
             <CardDescription>Update your account password</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-              />
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Password must be at least 6 characters long
+            </p>
             <Button 
               onClick={handleChangePassword} 
               disabled={isChangingPassword || !newPassword || !confirmPassword}
