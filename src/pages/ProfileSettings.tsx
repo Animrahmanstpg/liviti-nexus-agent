@@ -23,8 +23,11 @@ import {
   Info,
   Camera,
   Upload,
-  Trash2
+  Trash2,
+  Bell,
+  BellRing
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -58,6 +61,16 @@ const ProfileSettings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Notification preferences
+  const [emailNewProperties, setEmailNewProperties] = useState(true);
+  const [emailEoiUpdates, setEmailEoiUpdates] = useState(true);
+  const [emailLeadAssigned, setEmailLeadAssigned] = useState(true);
+  const [emailWeeklyDigest, setEmailWeeklyDigest] = useState(false);
+  const [inAppNewProperties, setInAppNewProperties] = useState(true);
+  const [inAppEoiUpdates, setInAppEoiUpdates] = useState(true);
+  const [inAppLeadAssigned, setInAppLeadAssigned] = useState(true);
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+
 
   useEffect(() => {
     const getUser = async () => {
@@ -79,6 +92,16 @@ const ProfileSettings = () => {
       setTwitter(metadata.twitter || "");
       setInstagram(metadata.instagram || "");
       setAvatarUrl(metadata.avatar_url || null);
+      
+      // Load notification preferences
+      const notifications = metadata.notification_preferences || {};
+      setEmailNewProperties(notifications.email_new_properties ?? true);
+      setEmailEoiUpdates(notifications.email_eoi_updates ?? true);
+      setEmailLeadAssigned(notifications.email_lead_assigned ?? true);
+      setEmailWeeklyDigest(notifications.email_weekly_digest ?? false);
+      setInAppNewProperties(notifications.in_app_new_properties ?? true);
+      setInAppEoiUpdates(notifications.in_app_eoi_updates ?? true);
+      setInAppLeadAssigned(notifications.in_app_lead_assigned ?? true);
       
       setIsLoading(false);
     };
@@ -234,6 +257,42 @@ const ProfileSettings = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    if (!user) return;
+    
+    setIsSavingNotifications(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { 
+          notification_preferences: {
+            email_new_properties: emailNewProperties,
+            email_eoi_updates: emailEoiUpdates,
+            email_lead_assigned: emailLeadAssigned,
+            email_weekly_digest: emailWeeklyDigest,
+            in_app_new_properties: inAppNewProperties,
+            in_app_eoi_updates: inAppEoiUpdates,
+            in_app_lead_assigned: inAppLeadAssigned,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Notification preferences saved",
+        description: "Your notification settings have been updated.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingNotifications(false);
     }
   };
 
@@ -595,6 +654,126 @@ const ProfileSettings = () => {
                 <Lock className="h-4 w-4 mr-2" />
               )}
               Update Password
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Notification Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notification Preferences
+            </CardTitle>
+            <CardDescription>Control how and when you receive notifications</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Email Notifications */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-medium text-sm">Email Notifications</h4>
+              </div>
+              <div className="space-y-3 pl-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="email-new-properties" className="text-sm font-normal">New Properties</Label>
+                    <p className="text-xs text-muted-foreground">Get notified when new properties are added</p>
+                  </div>
+                  <Switch
+                    id="email-new-properties"
+                    checked={emailNewProperties}
+                    onCheckedChange={setEmailNewProperties}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="email-eoi-updates" className="text-sm font-normal">EOI Updates</Label>
+                    <p className="text-xs text-muted-foreground">Receive updates on your EOI submissions</p>
+                  </div>
+                  <Switch
+                    id="email-eoi-updates"
+                    checked={emailEoiUpdates}
+                    onCheckedChange={setEmailEoiUpdates}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="email-lead-assigned" className="text-sm font-normal">Lead Assignments</Label>
+                    <p className="text-xs text-muted-foreground">Get notified when leads are assigned to you</p>
+                  </div>
+                  <Switch
+                    id="email-lead-assigned"
+                    checked={emailLeadAssigned}
+                    onCheckedChange={setEmailLeadAssigned}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="email-weekly-digest" className="text-sm font-normal">Weekly Digest</Label>
+                    <p className="text-xs text-muted-foreground">Receive a weekly summary of your activity</p>
+                  </div>
+                  <Switch
+                    id="email-weekly-digest"
+                    checked={emailWeeklyDigest}
+                    onCheckedChange={setEmailWeeklyDigest}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4" />
+
+            {/* In-App Notifications */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <BellRing className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-medium text-sm">In-App Notifications</h4>
+              </div>
+              <div className="space-y-3 pl-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="inapp-new-properties" className="text-sm font-normal">New Properties</Label>
+                    <p className="text-xs text-muted-foreground">Show alerts for new property listings</p>
+                  </div>
+                  <Switch
+                    id="inapp-new-properties"
+                    checked={inAppNewProperties}
+                    onCheckedChange={setInAppNewProperties}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="inapp-eoi-updates" className="text-sm font-normal">EOI Updates</Label>
+                    <p className="text-xs text-muted-foreground">Show alerts for EOI status changes</p>
+                  </div>
+                  <Switch
+                    id="inapp-eoi-updates"
+                    checked={inAppEoiUpdates}
+                    onCheckedChange={setInAppEoiUpdates}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="inapp-lead-assigned" className="text-sm font-normal">Lead Assignments</Label>
+                    <p className="text-xs text-muted-foreground">Show alerts when leads are assigned</p>
+                  </div>
+                  <Switch
+                    id="inapp-lead-assigned"
+                    checked={inAppLeadAssigned}
+                    onCheckedChange={setInAppLeadAssigned}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={handleSaveNotifications} disabled={isSavingNotifications}>
+              {isSavingNotifications ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Preferences
             </Button>
           </CardContent>
         </Card>
