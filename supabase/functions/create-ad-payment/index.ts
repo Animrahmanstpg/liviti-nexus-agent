@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,14 @@ const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-AD-PAYMENT] ${step}${detailsStr}`);
 };
+
+// Input validation schema
+const inputSchema = z.object({
+  campaignId: z.string().uuid({ message: "Invalid campaign ID format" }),
+  amount: z.number().positive({ message: "Amount must be positive" }).max(1000000, { message: "Amount exceeds maximum limit" }),
+  placementName: z.string().min(1, { message: "Placement name is required" }).max(200, { message: "Placement name too long" }),
+  days: z.number().int({ message: "Days must be a whole number" }).positive({ message: "Days must be positive" }).max(365, { message: "Maximum booking is 365 days" }),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,14 +34,42 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const { campaignId, amount, placementName, days } = await req.json();
-    logStep("Request data", { campaignId, amount, placementName, days });
+    // Parse and validate input
+    const rawInput = await req.json();
+    logStep("Raw input received", rawInput);
 
-    const authHeader = req.headers.get("Authorization")!;
+    const parseResult = inputSchema.safeParse(rawInput);
+    if (!parseResult.success) {
+      const errorMessages = parseResult.error.errors.map(e => e.message).join(", ");
+      logStep("Validation failed", { errors: errorMessages });
+      return new Response(JSON.stringify({ error: `Validation failed: ${errorMessages}` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    const { campaignId, amount, placementName, days } = parseResult.data;
+    logStep("Validated input", { campaignId, amount, placementName, days });
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("Missing authorization header");
+      return new Response(JSON.stringify({ error: "Authorization required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    if (!user?.email) {
+      logStep("User not authenticated");
+      return new Response(JSON.stringify({ error: "User not authenticated or email not available" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     logStep("User authenticated", { email: user.email });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
