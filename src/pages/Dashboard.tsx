@@ -22,11 +22,11 @@ const Dashboard = () => {
   }, []);
 
   const { data: properties, isLoading: propertiesLoading } = useQuery({
-    queryKey: ["properties"],
+    queryKey: ["properties-with-projects"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("properties")
-        .select("*")
+        .select("*, projects(image)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -243,33 +243,42 @@ const Dashboard = () => {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {properties?.slice(0, 3).map((property) => (
-                <Link 
-                  key={property.id} 
-                  to={`/properties/${property.id}`}
-                  className="flex items-center gap-4 rounded-xl border border-border/50 p-4 transition-all hover:bg-muted/50 hover:shadow-sm group"
-                >
-                  <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                    <img
-                      src={property.image}
-                      alt={property.title}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">{property.title}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-1">{property.location}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-display font-semibold text-foreground">${(property.price / 1000000).toFixed(1)}M</p>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      property.status === "available" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
-                    }`}>
-                      {property.status}
-                    </span>
-                  </div>
-                </Link>
-              ))}
+              {properties?.slice(0, 3).map((property) => {
+                const displayImage = property.image || (property.projects as any)?.image;
+                return (
+                  <Link 
+                    key={property.id} 
+                    to={`/properties/${property.id}`}
+                    className="flex items-center gap-4 rounded-xl border border-border/50 p-4 transition-all hover:bg-muted/50 hover:shadow-sm group"
+                  >
+                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                      {displayImage ? (
+                        <img
+                          src={displayImage}
+                          alt={property.title}
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center">
+                          <Building2 className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">{property.title}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-1">{property.location}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-display font-semibold text-foreground">${(property.price / 1000000).toFixed(1)}M</p>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        property.status === "available" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {property.status}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </CardContent>
           </Card>
 
