@@ -1,13 +1,20 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FolderKanban, MapPin, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FolderKanban, MapPin, Building2, LayoutGrid, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
+
+type ViewMode = "card" | "list";
 
 const Projects = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
+
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects-with-counts"],
     queryFn: async () => {
@@ -40,6 +47,19 @@ const Projects = () => {
     },
   });
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+      case "completed":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+      case "upcoming":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+      default:
+        return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -56,16 +76,14 @@ const Projects = () => {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i} className="p-4">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-12 w-12 rounded-lg" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-1/3" />
-                    <Skeleton className="h-4 w-1/4" />
-                  </div>
-                  <Skeleton className="h-6 w-16" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <div className="p-5 space-y-3">
+                  <Skeleton className="h-6 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-1/3" />
                 </div>
               </Card>
             ))}
@@ -75,18 +93,7 @@ const Projects = () => {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
-      case "completed":
-        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-      case "upcoming":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
+  const filteredProjects = projects?.filter((project) => project.propertyCount > 0) || [];
 
   return (
     <Layout>
@@ -104,24 +111,111 @@ const Projects = () => {
           </p>
         </div>
 
-        {(() => {
-          const filteredProjects = projects?.filter((project) => project.propertyCount > 0) || [];
-
-          return (
-            <>
-              {/* Projects Count */}
+        {/* Controls */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing <span className="font-semibold text-foreground">{filteredProjects.length}</span> projects
           </p>
+          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className={cn(
+                "h-8 px-3",
+                viewMode === "card" && "bg-background shadow-sm"
+              )}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Cards
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "h-8 px-3",
+                viewMode === "list" && "bg-background shadow-sm"
+              )}
+            >
+              <List className="h-4 w-4 mr-2" />
+              List
+            </Button>
+          </div>
         </div>
 
-        {/* Projects List */}
-        <div className="flex flex-col gap-3">
-          {filteredProjects.map((project, index) => {
-            const propertyCount = project.propertyCount;
+        {/* Card View */}
+        {viewMode === "card" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project, index) => (
+              <Link
+                key={project.id}
+                to={`/projects/${project.id}`}
+                className="group block animate-fade-in"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <Card className="overflow-hidden h-full border-border/50 bg-card hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1">
+                  {/* Image Section */}
+                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
+                    {project.image ? (
+                      <img
+                        src={project.image}
+                        alt={project.name}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center">
+                        <FolderKanban className="h-16 w-16 text-primary/20" />
+                      </div>
+                    )}
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    {/* Status Badge */}
+                    <Badge 
+                      className={cn(
+                        "absolute top-4 right-4 capitalize backdrop-blur-sm",
+                        getStatusColor(project.status)
+                      )}
+                    >
+                      {project.status}
+                    </Badge>
+                    {/* Property Count Badge */}
+                    <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white/90 text-sm font-medium">
+                      <Building2 className="h-4 w-4" />
+                      <span>{project.propertyCount} {project.propertyCount === 1 ? 'property' : 'properties'}</span>
+                    </div>
+                  </div>
 
-            return (
+                  {/* Content Section */}
+                  <div className="p-5 space-y-3">
+                    <h3 className="font-display font-semibold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">
+                      {project.name}
+                    </h3>
+                    {project.location && (
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        <span className="line-clamp-1">{project.location}</span>
+                      </div>
+                    )}
+                    {project.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {project.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Hover Accent Line */}
+                  <div className="h-1 bg-gradient-to-r from-primary/0 via-primary to-primary/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* List View */}
+        {viewMode === "list" && (
+          <div className="flex flex-col gap-3">
+            {filteredProjects.map((project, index) => (
               <Link 
                 key={project.id} 
                 to={`/projects/${project.id}`}
@@ -152,7 +246,7 @@ const Projects = () => {
                         )}
                         <span className="flex items-center gap-1">
                           <Building2 className="h-3.5 w-3.5" />
-                          {propertyCount} {propertyCount === 1 ? 'property' : 'properties'}
+                          {project.propertyCount} {project.propertyCount === 1 ? 'property' : 'properties'}
                         </span>
                       </div>
                     </div>
@@ -162,26 +256,24 @@ const Projects = () => {
                   </div>
                 </Card>
               </Link>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
-              {filteredProjects.length === 0 && (
-                <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
-                  <div className="text-center">
-                    <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                      <FolderKanban className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-lg font-display font-semibold text-foreground">No projects found</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Projects with properties will appear here
-                    </p>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        })()}
+        {/* Empty State */}
+        {filteredProjects.length === 0 && (
+          <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <FolderKanban className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-lg font-display font-semibold text-foreground">No projects found</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Projects with properties will appear here
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
