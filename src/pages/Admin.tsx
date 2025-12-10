@@ -300,45 +300,52 @@ const Admin = () => {
 
         <Tabs defaultValue="properties" className="w-full">
           <div className="sticky top-16 z-20 bg-background/95 backdrop-blur-sm pb-4 -mx-4 px-4">
-            <TabsList className="flex w-full overflow-x-auto scrollbar-hide gap-1 h-auto p-1">
-              <TabsTrigger value="properties" className="shrink-0">Properties</TabsTrigger>
-            <TabsTrigger value="projects" className="shrink-0">
-              <FolderKanban className="w-4 h-4 mr-2" />
-              Projects
-            </TabsTrigger>
-            <TabsTrigger value="submissions" className="shrink-0">
-              <FileText className="w-4 h-4 mr-2" />
-              Submissions
-            </TabsTrigger>
-            <TabsTrigger value="users" className="shrink-0">
-              <Users className="w-4 h-4 mr-2" />
-              User Access
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="shrink-0">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Agent Analytics
-            </TabsTrigger>
-            <TabsTrigger value="platform" className="shrink-0">
-              <Activity className="w-4 h-4 mr-2" />
-              Platform
-            </TabsTrigger>
-            <TabsTrigger value="export" className="shrink-0">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </TabsTrigger>
-            <TabsTrigger value="custom-fields" className="shrink-0">
-              <Settings className="w-4 h-4 mr-2" />
-              Fields
-            </TabsTrigger>
-            <TabsTrigger value="navigation" className="shrink-0">
-              <Menu className="w-4 h-4 mr-2" />
-              Navigation
-            </TabsTrigger>
-            <TabsTrigger value="ads" className="shrink-0">
-              <Megaphone className="w-4 h-4 mr-2" />
-              Ads
-            </TabsTrigger>
-          </TabsList>
+            <div className="relative">
+              {/* Left fade indicator */}
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+              {/* Right fade indicator */}
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+              
+              <TabsList className="flex w-full overflow-x-auto scrollbar-hide gap-1 h-auto p-1 px-6">
+                <TabsTrigger value="properties" className="shrink-0">Properties</TabsTrigger>
+                <TabsTrigger value="projects" className="shrink-0">
+                  <FolderKanban className="w-4 h-4 mr-2" />
+                  Projects
+                </TabsTrigger>
+                <TabsTrigger value="submissions" className="shrink-0">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Submissions
+                </TabsTrigger>
+                <TabsTrigger value="users" className="shrink-0">
+                  <Users className="w-4 h-4 mr-2" />
+                  User Access
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="shrink-0">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Agent Analytics
+                </TabsTrigger>
+                <TabsTrigger value="platform" className="shrink-0">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Platform
+                </TabsTrigger>
+                <TabsTrigger value="export" className="shrink-0">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </TabsTrigger>
+                <TabsTrigger value="custom-fields" className="shrink-0">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Fields
+                </TabsTrigger>
+                <TabsTrigger value="navigation" className="shrink-0">
+                  <Menu className="w-4 h-4 mr-2" />
+                  Navigation
+                </TabsTrigger>
+                <TabsTrigger value="ads" className="shrink-0">
+                  <Megaphone className="w-4 h-4 mr-2" />
+                  Ads
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="properties" className="space-y-4">
