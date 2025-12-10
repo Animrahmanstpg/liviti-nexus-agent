@@ -18,6 +18,7 @@ import BulkImportPage from "@/pages/BulkImportPage";
 import MySubmissions from "@/pages/MySubmissions";
 import Advertise from "@/pages/Advertise";
 import ResetPassword from "@/pages/ResetPassword";
+import ProfileSettings from "@/pages/ProfileSettings";
 import NotFound from "@/pages/NotFound";
 
 const AnimatedRoutes = () => {
@@ -46,6 +47,7 @@ const AnimatedRoutes = () => {
         <Route path="/bulk-import" element={<ProtectedRoute><PageTransition><BulkImportPage /></PageTransition></ProtectedRoute>} />
         <Route path="/my-submissions" element={<ProtectedRoute><PageTransition><MySubmissions /></PageTransition></ProtectedRoute>} />
         <Route path="/advertise" element={<ProtectedRoute><PageTransition><Advertise /></PageTransition></ProtectedRoute>} />
+        <Route path="/profile-settings" element={<ProtectedRoute><PageTransition><ProfileSettings /></PageTransition></ProtectedRoute>} />
         
         {/* 404 - Protected */}
         <Route path="*" element={<ProtectedRoute><PageTransition><NotFound /></PageTransition></ProtectedRoute>} />
