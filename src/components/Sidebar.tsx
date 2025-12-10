@@ -3,12 +3,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     Building2, LayoutDashboard, Users, Heart, FileText,
     FolderKanban, Shield, ChartBar, ChevronLeft, ChevronRight,
-    LucideIcon, Home, Settings, LogOut
+    LucideIcon, Home, Settings, LogOut, UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
     AlertDialog,
@@ -88,6 +88,7 @@ const Sidebar = ({
         : user?.email?.slice(0, 2).toUpperCase() || 'U';
 
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+    const avatarUrl = user?.user_metadata?.avatar_url || null;
 
     const NavLink = ({ item, onClick }: { item: { label: string; path: string; icon: string; }; onClick?: () => void }) => {
         const Icon = getIcon(item.icon);
@@ -180,6 +181,7 @@ const Sidebar = ({
                         collapsed && !isMobile && "flex-col justify-center p-1"
                     )}>
                         <Avatar className="h-9 w-9 shrink-0">
+                            <AvatarImage src={avatarUrl || undefined} alt={userName} />
                             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                                 {userInitials}
                             </AvatarFallback>
@@ -191,6 +193,19 @@ const Sidebar = ({
                             </div>
                         ) : null}
                     </div>
+                    <Link
+                        to="/profile-settings"
+                        onClick={isMobile ? () => setMobileOpen(false) : undefined}
+                        className={cn(
+                            "flex items-center gap-2 w-full mt-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all",
+                            collapsed && !isMobile ? "justify-center p-2" : "px-3 py-2"
+                        )}
+                    >
+                        <UserCog className="h-4 w-4 shrink-0" />
+                        {!collapsed || isMobile ? (
+                            <span>Profile Settings</span>
+                        ) : null}
+                    </Link>
                     <Button
                         variant="ghost"
                         size={collapsed && !isMobile ? "icon" : "sm"}
