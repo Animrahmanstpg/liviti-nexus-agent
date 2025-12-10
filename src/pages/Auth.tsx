@@ -435,9 +435,7 @@ const Auth = () => {
           </Card>
 
           {/* Footer */}
-          <p className="text-center text-sm text-muted-foreground">
-            © 2024 Liviti. All rights reserved.
-          </p>
+          <p className="text-center text-sm text-muted-foreground">© 2025 Liviti. All rights reserved.</p>
         </div>
       </div>
     </div>;
