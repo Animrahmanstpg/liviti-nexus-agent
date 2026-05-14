@@ -7,7 +7,7 @@ const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 export const useActivityTracker = () => {
   const location = useLocation();
   const sessionIdRef = useRef<string | null>(null);
-  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const pagesViewedRef = useRef<number>(0);
 
